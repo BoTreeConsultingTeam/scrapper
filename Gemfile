@@ -9,7 +9,7 @@ gem 'mechanize', '~> 2.7', '>= 2.7.3'
 gem 'bootstrap-sass', '~> 3.3.6'
 # gem 'phantom_mechanize', '~> 0.0.4'
 # Use sqlite3 as the database for Active Record
-gem 'sqlite3'
+# gem 'sqlite3'
 # Use SCSS for stylesheets
 gem 'sass-rails', '~> 5.0'
 # Use Uglifier as compressor for JavaScript assets
