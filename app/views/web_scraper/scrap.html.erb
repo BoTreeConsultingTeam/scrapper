@@ -1,0 +1,24 @@
+<%= link_to "Download CSV", scraped_data_path(format: 'csv'), id: 'csv-file', class: 'btn btn-primary' %>
+<table class="table table-bordered table-striped">
+  <tr>
+    <th>Name</th>
+    <th>Description</th>
+    <th>Tweets</th>
+    <th>Following</th>
+    <th>Followers</th>
+    <th>Likes</th>
+    <th>Location</th>
+    <th>Profile Pic.</th>
+  </th>
+  <%- @user_details.each do |details| %>
+    <tr>
+      <%- details.each do |detail| %>
+        <%- if detail.to_s.match(/http/) %>
+          <td><img src='<%= detail %>' style="width: 80px; height: 80px"></td>
+        <%- else %>
+          <td><%= detail %></td>
+        <% end %>
+      <% end %>
+    </tr>
+  <% end %>
+</table>
