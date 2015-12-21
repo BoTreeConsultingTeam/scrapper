@@ -97,6 +97,7 @@ GEM
     nokogiri (1.6.7.1)
       mini_portile2 (~> 2.0.0.rc2)
     ntlm-http (0.1.1)
+    pg (0.18.4)
     phantomjs (1.9.8.0)
     pry (0.10.1)
       coderay (~> 1.1.0)
@@ -182,6 +183,7 @@ DEPENDENCIES
   jbuilder (~> 2.0)
   jquery-rails
   mechanize (~> 2.7, >= 2.7.3)
+  pg
   phantomjs (~> 1.9, >= 1.9.8.0)
   pry-rails
   rails (= 4.2.4)
