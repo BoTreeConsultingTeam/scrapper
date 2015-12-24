@@ -88,7 +88,7 @@ class WebScraperController < ApplicationController
   def fetch_followers_of_users_and_scrap(user)
     Rails.logger.debug "Starting for #{user}"
 
-    Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/twitter_fetcher.js", user.try(:strip), ENV['ttr_user_name'], ENV['ttr_passwd'])
+    Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/twitter_fetcher.js", user.try(:strip), ENV['TTR_USER_NAME'], ENV['TTR_PASSWD'])
     folowers_file = File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_followers.html")
     folowing_file = File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_following.html")
     folowers_page = Nokogiri::HTML(folowers_file)
