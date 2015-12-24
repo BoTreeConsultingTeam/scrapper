@@ -3,12 +3,16 @@ Rails.application.routes.draw do
 
   root 'web_scraper#new'
 
-  post '/scrap', to: 'web_scraper#scrap'
+  post '/scrap_profile', to: 'web_scraper#scrap'
+  post '/scrap_followers', to: 'web_scraper#scrap_followers'
   
   get 'scrapper/view'
 
   get 'scraped_data', to: 'web_scraper#scraped_data'
 
+  post 'assign_email', to: 'web_scraper#assign_email'
+
+  get 'send_list_of_followers', to: 'web_scraper#send_list_of_followers'
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".
 

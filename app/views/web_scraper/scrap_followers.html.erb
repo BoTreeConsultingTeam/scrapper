@@ -1,0 +1,12 @@
+<%= link_to 'Home', root_path, class: 'btn btn-default' %>
+<div class="container">
+  <h3> Please Give you email id. </h3> 
+  <%= form_tag assign_email_path do %>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
+      <%= text_field_tag :email, '', placeholder: 'enter your email', cols: 25, rows: 5, class: 'form-control' %><br/>
+    </div><br/>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
+      <%= submit_tag :scrap, class: 'btn btn-primary' %>
+    </div>
+  <% end %>
+</div>
