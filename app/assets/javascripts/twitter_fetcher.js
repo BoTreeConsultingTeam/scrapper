@@ -35,8 +35,8 @@ function login() {
     } else {
       page.evaluate(function(){
         console.log("==> Submitting login form...");
-        document.querySelector("[id='session[username_or_email]']").value = '';
-        document.querySelector("[id='session[password]']").value = '';
+        document.querySelector("[id='session[username_or_email]']").value = system.args[1];
+        document.querySelector("[id='session[password]']").value = system.args[2];
         document.forms[0].submit();
       });
 
