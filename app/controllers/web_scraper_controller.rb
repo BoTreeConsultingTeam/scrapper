@@ -9,7 +9,7 @@ require 'phantomjs'
 class WebScraperController < ApplicationController
   def new
     reset_session
-
+    Dir.mkdir "#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data" rescue nil
   end
   def scrap
 
