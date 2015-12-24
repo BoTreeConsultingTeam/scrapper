@@ -35,8 +35,8 @@ function login() {
     } else {
       page.evaluate(function(){
         console.log("==> Submitting login form...");
-        document.querySelector("[id='session[username_or_email]']").value = 'parthbarot';
-        document.querySelector("[id='session[password]']").value = 's0nudada';
+        document.querySelector("[id='session[username_or_email]']").value = '';
+        document.querySelector("[id='session[password]']").value = '';
         document.forms[0].submit();
       });
 
