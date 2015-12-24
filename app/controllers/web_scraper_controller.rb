@@ -4,12 +4,13 @@ require 'open-uri'
 require 'pry'
 require 'csv'
 require 'phantomjs'
+require 'zip'
 # Phantomjs.path
 
 class WebScraperController < ApplicationController
   def new
     reset_session
-    Dir.mkdir "#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data" rescue nil
+    # Dir.mkdir "#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data" rescue nil
   end
   def scrap
 
@@ -59,7 +60,7 @@ class WebScraperController < ApplicationController
 
   def send_list_of_followers
     number_of_users = session[:user_name_list].split(',').count
-    number_of_files = Dir["#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data/*.csv"].count
+    number_of_files = Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*.csv"].count
     if number_of_files == number_of_users
       Thread.new { create_zip_file_and_send_email }
       session[:message] = 'Mail is sent'
@@ -103,8 +104,8 @@ class WebScraperController < ApplicationController
     following = folowing_fullname.zip(folowing_username)
     list = followers.zip(following)
 
-    CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data/#{user}_followers.csv", 'a+') do |csv|
-      csv << ['Follower full name', 'Follower user name', 'Following full name', 'Following user name']
+    CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_followers.csv", 'a+') do |csv|
+      csv << ['Follower full name', 'Follower user name', "",'Following full name', 'Following user name']
       list.each do |data|
         csv << data.flatten.insert(2, "")
       end   
@@ -115,12 +116,23 @@ class WebScraperController < ApplicationController
   def create_zip_file_and_send_email
     Rails.logger.debug '=====> Start Compressing'
     sleep 20
-    input_dir = "#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data"
-    output_file = "#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data/scrapped_data.zip"
-    ZipFileGenerator.new(input_dir, output_file).write
-    Rails.logger.debug '=====> Compressed'
-    ScrappedDataMailer.data_mailer.deliver
-    Dir["#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data/*"].each {|file| File.delete("#{file}") }
+    folder = "#{File.expand_path(File.dirname(__FILE__))}/../.."
+    input_filenames = Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*.csv"]
+    zipfile_name = "#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data.zip"
+    puts folder, zipfile_name, input_filenames
+    Zip::File.open(zipfile_name, Zip::File::CREATE) do |zipfile|
+      input_filenames.each do |filename|
+        # Two arguments:
+        # - The name of the file as it will appear in the archive
+        # - The original file, including the path to find it
+        zipfile.add(filename.split('/').last, folder + '/' + filename.split('/').last)
+      end
+      zipfile.get_output_stream("myFile") { |os| os.write "myFile contains just this" }
+    end
+    # ZipFileGenerator.new(input_dir, output_file).write
+    # Rails.logger.debug '=====> Compressed'
+    ScrappedDataMailer.data_mailer(session[:email]).deliver
+    Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*csv"].each {|file| File.delete("#{file}") }
     Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*.html"].each {|file| File.delete("#{file}") }
   end
 end
