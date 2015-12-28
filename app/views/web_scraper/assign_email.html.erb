@@ -13,4 +13,10 @@
       console.log('hello');
     }, 30000);
   </script>
+<% else %>
+  <script type="text/javascript">
+    $(document).ready(function(){
+      window.location.replace('/scraped_data.zip');
+    });
+  </script>
 <% end %>

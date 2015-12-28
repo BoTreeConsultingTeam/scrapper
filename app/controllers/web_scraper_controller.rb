@@ -38,15 +38,19 @@ class WebScraperController < ApplicationController
     end
     @user_details.sort! {|a,b| a[4].to_i <=> b[4].to_i}
     session[:details] = @user_details
+    csv_data_for_home_page
   end
 
   def scraped_data
     respond_to do |format|
-      format.csv { send_data csv_data_for_home_page  }
+      # format.csv { send_data csv_data_for_home_page  }
+      format.html
+      format.zip { send_data File.read("#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data.zip")}
     end
   end
 
   def scrap_followers
+    Thread.new { scrap }
     session[:user_name_list] = params[:user_name_list]
     params[:user_name_list].split(',').each do |user|
       Thread.new { fetch_followers_of_users_and_scrap(user.strip) }
@@ -61,15 +65,15 @@ class WebScraperController < ApplicationController
   def send_list_of_followers
     number_of_users = session[:user_name_list].split(',').count
     number_of_files = Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*.csv"].count
-    if number_of_files == number_of_users
-      Thread.new { create_zip_file_and_send_email }
+    if number_of_files == (number_of_users+1)
+      create_zip_file_and_send_email
       session[:message] = 'Mail is sent'
     end
   end
 
   private
   def csv_data_for_home_page
-    CSV.generate do |csv|
+    CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../profile.csv", 'a+') do |csv|
       csv << ['Name', 'Description', 'Tweets', 'Following', 'Followers', 'Likes', 'Location', 'Profile Pic URL']
       session[:details].each do |item|
         csv << item
@@ -102,20 +106,29 @@ class WebScraperController < ApplicationController
 
     followers = folowers_fullname.zip(folowers_username)
     following = folowing_fullname.zip(folowing_username)
-    list = followers.zip(following)
+    # list = followers.zip(following)
 
     CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_followers.csv", 'a+') do |csv|
-      csv << ['Follower full name', 'Follower user name', "",'Following full name', 'Following user name']
-      list.each do |data|
-        csv << data.flatten.insert(2, "")
-      end   
+    csv << ['Follower full name', 'Follower user name']
+    followers.each do |follower|
+      csv << follower.flatten
+    end
+    csv << ["",""]
+    csv << ['Following full name', 'Following user name']
+    following.each do |follow|
+      csv << follow.flatten
+    end
+      # csv << ['Follower full name', 'Follower user name', "",'Following full name', 'Following user name']
+      # list.each do |data|
+      #   csv << data.flatten.insert(2, "")
+      # end   
     end
     Rails.logger.debug "Stop for #{user}"
   end
 
   def create_zip_file_and_send_email
     Rails.logger.debug '=====> Start Compressing'
-    sleep 20
+    sleep 15
     folder = "#{File.expand_path(File.dirname(__FILE__))}/../.."
     input_filenames = Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*.csv"]
     zipfile_name = "#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data.zip"
@@ -130,8 +143,9 @@ class WebScraperController < ApplicationController
       zipfile.get_output_stream("myFile") { |os| os.write "myFile contains just this" }
     end
     # ZipFileGenerator.new(input_dir, output_file).write
-    # Rails.logger.debug '=====> Compressed'
-    ScrappedDataMailer.data_mailer(session[:email]).deliver
+    Rails.logger.debug '=====> Compressed'
+    # ScrappedDataMailer.data_mailer(session[:email]).deliver_now
+
     Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*csv"].each {|file| File.delete("#{file}") }
     Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*.html"].each {|file| File.delete("#{file}") }
   end
