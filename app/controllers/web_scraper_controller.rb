@@ -38,6 +38,7 @@ class WebScraperController < ApplicationController
     end
     @user_details.sort! {|a,b| a[4].to_i <=> b[4].to_i}
     session[:details] = @user_details
+    puts "Profile is fetched..."
     csv_data_for_home_page
   end
 
@@ -51,6 +52,7 @@ class WebScraperController < ApplicationController
 
   def scrap_followers
     Thread.new { scrap }
+    puts "start fetching followers and following"
     session[:user_name_list] = params[:user_name_list]
     params[:user_name_list].split(',').each do |user|
       Thread.new { fetch_followers_of_users_and_scrap(user.strip) }
@@ -91,13 +93,14 @@ class WebScraperController < ApplicationController
   end
 
   def fetch_followers_of_users_and_scrap(user)
-    Rails.logger.debug "Starting for #{user}"
-
+    puts "Starting for #{user}"
     Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/twitter_fetcher.js", user.try(:strip), ENV['TTR_USER_NAME'], ENV['TTR_PASSWD'])
+    puts "HTML files are created"
     folowers_file = File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_followers.html")
     folowing_file = File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_following.html")
     folowers_page = Nokogiri::HTML(folowers_file)
     folowing_page = Nokogiri::HTML(folowing_file)
+
     folowers_fullname = folowers_page.search('.fullname').map(&:text)
     folowers_username = folowers_page.search('.username').map(&:text)
 
@@ -118,12 +121,13 @@ class WebScraperController < ApplicationController
     following.each do |follow|
       csv << follow.flatten
     end
+    puts "CSV files of following and followers are created"
       # csv << ['Follower full name', 'Follower user name', "",'Following full name', 'Following user name']
       # list.each do |data|
       #   csv << data.flatten.insert(2, "")
       # end   
     end
-    Rails.logger.debug "Stop for #{user}"
+    puts "Stop for #{user}"
   end
 
   def create_zip_file_and_send_email
