@@ -5,7 +5,7 @@ require 'pry'
 require 'csv'
 require 'phantomjs'
 require 'zip'
-Phantomjs.path
+# Phantomjs.path
 
 class WebScraperController < ApplicationController
   def new
