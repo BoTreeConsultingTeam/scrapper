@@ -118,6 +118,7 @@ class WebScraperController < ApplicationController
         csv << follower.flatten
       end
       csv << ["",""]
+      csv << ["",""]
       csv << ['Following full name', 'Following user name']
       following.each do |follow|
         csv << follow.flatten
