@@ -8,6 +8,7 @@ require 'zip'
 # Phantomjs.path
 
 class WebScraperController < ApplicationController
+  after_action :delete_zip_file, only: :scraped_data
   def new
     reset_session
     # Dir.mkdir "#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data" rescue nil
@@ -54,10 +55,7 @@ class WebScraperController < ApplicationController
     Thread.new { scrap }
     puts "start fetching followers and following"
     session[:user_name_list] = params[:user_name_list]
-    params[:user_name_list].split(',').each do |user|
-      Thread.new { fetch_followers_of_users_and_scrap(user.strip) }
-    end
-    # thread.map(&:join)
+    Thread.new { fetch_followers_of_users_and_scrap }
   end
   
   def assign_email
@@ -92,42 +90,46 @@ class WebScraperController < ApplicationController
     end
   end
 
-  def fetch_followers_of_users_and_scrap(user)
-    puts "Starting for #{user}"
-    Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/twitter_fetcher.js", user.try(:strip), ENV['TTR_USER_NAME'], ENV['TTR_PASSWD'])
-    puts "HTML files are created"
-    folowers_file = File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_followers.html")
-    folowing_file = File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_following.html")
-    folowers_page = Nokogiri::HTML(folowers_file)
-    folowing_page = Nokogiri::HTML(folowing_file)
+  def fetch_followers_of_users_and_scrap
+    params[:user_name_list].split(',').each do |user|
+      user = user.strip
+      puts "Starting for #{user}"
 
-    folowers_fullname = folowers_page.search('.fullname').map(&:text)
-    folowers_username = folowers_page.search('.username').map(&:text)
+      Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/twitter_fetcher.js", user.try(:strip), ENV['TTR_USER_NAME'], ENV['TTR_PASSWD'])
+      puts "HTML files are created"
+      folowers_file = File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_followers.html")
+      folowing_file = File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_following.html")
+      folowers_page = Nokogiri::HTML(folowers_file)
+      folowing_page = Nokogiri::HTML(folowing_file)
 
-    folowing_fullname = folowing_page.search('.fullname').map(&:text)
-    folowing_username = folowing_page.search('.username').map(&:text)
+      folowers_fullname = folowers_page.search('.fullname').map(&:text)
+      folowers_username = folowers_page.search('.username').map(&:text)
 
-    followers = folowers_fullname.zip(folowers_username)
-    following = folowing_fullname.zip(folowing_username)
-    # list = followers.zip(following)
+      folowing_fullname = folowing_page.search('.fullname').map(&:text)
+      folowing_username = folowing_page.search('.username').map(&:text)
 
-    CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_followers.csv", 'a+') do |csv|
-    csv << ['Follower full name', 'Follower user name']
-    followers.each do |follower|
-      csv << follower.flatten
+      followers = folowers_fullname.zip(folowers_username)
+      following = folowing_fullname.zip(folowing_username)
+      # list = followers.zip(following)
+
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_followers.csv", 'a+') do |csv|
+      csv << ['Follower full name', 'Follower user name']
+      followers.each do |follower|
+        csv << follower.flatten
+      end
+      csv << ["",""]
+      csv << ['Following full name', 'Following user name']
+      following.each do |follow|
+        csv << follow.flatten
+      end
+      puts "CSV files of following and followers are created"
+        # csv << ['Follower full name', 'Follower user name', "",'Following full name', 'Following user name']
+        # list.each do |data|
+        #   csv << data.flatten.insert(2, "")
+        # end   
+      end
+      puts "Stop for #{user}"
     end
-    csv << ["",""]
-    csv << ['Following full name', 'Following user name']
-    following.each do |follow|
-      csv << follow.flatten
-    end
-    puts "CSV files of following and followers are created"
-      # csv << ['Follower full name', 'Follower user name', "",'Following full name', 'Following user name']
-      # list.each do |data|
-      #   csv << data.flatten.insert(2, "")
-      # end   
-    end
-    puts "Stop for #{user}"
   end
 
   def create_zip_file_and_send_email
@@ -152,5 +154,10 @@ class WebScraperController < ApplicationController
 
     Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*csv"].each {|file| File.delete("#{file}") }
     Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*.html"].each {|file| File.delete("#{file}") }
+  end
+
+  def delete_zip_file
+    sleep 5
+    File.delete("#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data.zip")
   end
 end
