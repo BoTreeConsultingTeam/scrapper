@@ -1,15 +1,15 @@
 <div class="container">
-  <h3> Profile </h3>
-  <%= form_tag scrap_profile_path do %>
+  <!-- <h3> Profile </h3> -->
+  <% form_tag scrap_profile_path do %>
     <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12 form-group">
       <label class="control-label">Please enter twitter handles separated by comma (Maximum 25)</label>
     </div>
     <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
-      <%= text_area_tag :user_name_list, '', placeholder: 'enter multiple user separating by coma', cols: 25, rows: 5, class: 'form-control' %><br/>
+      <% text_area_tag :user_name_list, '', placeholder: 'enter multiple user separating by coma', cols: 25, rows: 5, class: 'form-control' %><br/>
     </div><br/>
     <div class="col-lg-offset-2 col-md-offset-2 col-lg-6col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
     
-      <%= submit_tag :scrap, class: 'btn btn-primary' %>
+      <% submit_tag :scrap, class: 'btn btn-primary' %>
     </div>
   <% end %>
 </div>
@@ -24,7 +24,7 @@
       <%= text_area_tag :user_name_list, '', placeholder: 'enter multiple user separating by coma', cols: 25, rows: 5, class: 'form-control' %><br/>
     </div><br/>
     <div class="col-lg-offset-2 col-md-offset-2 col-lg-6col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
-      <%= submit_tag :scrap, class: 'btn btn-primary' %>
+      <%= submit_tag :Extract, class: 'btn btn-primary' %>
     </div>
   <% end %>
 </div>
