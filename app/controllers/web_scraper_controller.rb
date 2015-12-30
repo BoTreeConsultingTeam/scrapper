@@ -43,9 +43,9 @@ class WebScraperController < ApplicationController
       page_count += ( counts[1].to_i + counts[2].to_i )
     end
     time_count = (page_count / elements_per_page).to_f * time_to_scroll_once
-    session[:current_time] = Time.now
-    session[:download_time] = Time.now + time_count + default_time
-    session[:time] = (time_count + 30).to_f
+    session[:current_time] = Time.now.in_time_zone(params[:timezone])
+    session[:download_time] = Time.now.in_time_zone(params[:timezone]) + time_count + default_time
+    session[:time] = (time_count + 30).to_f + default_time
     puts session[:current_time]
     puts session[:time]
     @user_details.sort! {|a,b| a[4].to_i <=> b[4].to_i}
@@ -64,7 +64,6 @@ class WebScraperController < ApplicationController
 
   def scrap_followers
     scrap
-    # Thread.new { scrap }
     puts "start fetching followers and following"
     session[:user_name_list] = params[:user_name_list]
     Thread.new { fetch_followers_of_users_and_scrap }

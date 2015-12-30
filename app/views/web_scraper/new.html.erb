@@ -20,6 +20,7 @@
     <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12 form-group">
       <label class="control-label">Please enter twitter handles separated by comma (Maximum 25)</label>
     </div>
+    <%= hidden_field_tag :timezone, '', class: 'time-zone' %>
     <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
       <%= text_area_tag :user_name_list, '', placeholder: 'enter multiple user separating by coma', cols: 25, rows: 5, class: 'form-control' %><br/>
     </div><br/>
@@ -28,3 +29,9 @@
     </div>
   <% end %>
 </div>
+<script type="text/javascript">
+  $(document).ready(function(){
+    var timezone = jstz.determine();
+    $('.time-zone').val(timezone.name());
+  })
+</script>
