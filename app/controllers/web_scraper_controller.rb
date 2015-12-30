@@ -17,6 +17,10 @@ class WebScraperController < ApplicationController
 
     @user_details = []
     # mechanize = Mechanize.new
+    page_count = 0
+    elements_per_page = 20
+    time_to_scroll_once = 3
+    default_time = 90
     params[:user_name_list].split(',').each do |user_name|
       page = Nokogiri::HTML(open("https://twitter.com/#{user_name.try(:strip)}"))
       # page = mechanize.get('https://twitter.com/santosh4892')
@@ -36,7 +40,14 @@ class WebScraperController < ApplicationController
       end
       counts[2] = counts[2].to_i
       @user_details << [title, about_user, counts, location, profile_pic].flatten
+      page_count += ( counts[1].to_i + counts[2].to_i )
     end
+    time_count = (page_count / elements_per_page).to_f * time_to_scroll_once
+    session[:current_time] = Time.now
+    session[:download_time] = Time.now + time_count + default_time
+    session[:time] = (time_count + 30).to_f
+    puts session[:current_time]
+    puts session[:time]
     @user_details.sort! {|a,b| a[4].to_i <=> b[4].to_i}
     session[:details] = @user_details
     puts "Profile is fetched..."
@@ -52,7 +63,8 @@ class WebScraperController < ApplicationController
   end
 
   def scrap_followers
-    Thread.new { scrap }
+    scrap
+    # Thread.new { scrap }
     puts "start fetching followers and following"
     session[:user_name_list] = params[:user_name_list]
     Thread.new { fetch_followers_of_users_and_scrap }

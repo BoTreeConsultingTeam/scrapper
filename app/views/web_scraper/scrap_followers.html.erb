@@ -1,5 +1,8 @@
 <%= link_to 'Home', root_path, class: 'btn btn-default' %>
-<h2> Sit back and get relaxed, You will get zip file of scrapped data. </h2>
+<h2> Sit back and get relaxed, You will get zip file of scrapped data, Thanks. </h2>
+Start Time <%= session[:current_time].strftime('%H h %M m %S s') %> <br/>
+It will take aprox <%= session[:time].to_i %> seconds<br/>
+You will receive data at near about <%= session[:download_time].strftime('%H h %M m %S s') %>
 <% unless session[:message].present? %>
   <script type="text/javascript">
     setTimeout(function(){
