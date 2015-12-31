@@ -19,7 +19,7 @@ Download will start at <%= Time.strptime(session[:download_time], '%Y-%m-%dT%H:%
   </script>
 <% else %>
   Your download is started,<br/>
-  If not then click <%= link_to 'here', '/scraped_data.zip' %> to download it manually.
+  
   <script type="text/javascript">
     $(document).ready(function(){
       setTimeout(function(){
