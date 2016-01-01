@@ -53,7 +53,7 @@ class WebScraperController < ApplicationController
       end
       counts[2] = counts[2].to_i
       @user_details << [title, about_user, counts, location, profile_pic].flatten
-      page_count += ( counts[1].to_i + counts[2].to_i )
+      page_count += ( counts[1].gsub(',', '').to_i + counts[2].gsub(',', '').to_i )
     end
     time_count = (page_count / elements_per_page).to_f * time_to_scroll_once
     session[:current_time] = Time.now.in_time_zone(params[:timezone])
