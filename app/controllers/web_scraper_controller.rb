@@ -9,10 +9,22 @@ require 'zip'
 
 class WebScraperController < ApplicationController
   after_action :delete_zip_file, only: :scraped_data
+  before_action :authentication, only: :new
+
   def new
-    reset_session
+    # reset_session
     # Dir.mkdir "#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data" rescue nil
   end
+
+  def authentication
+    reset_session
+    if params[:authentication_key] == '11@2016'
+      render "new"
+    else
+      render "authentication"
+    end
+  end
+
   def scrap
 
     @user_details = []

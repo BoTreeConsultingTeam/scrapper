@@ -1,0 +1,14 @@
+<div class="container">
+  <h3> Authentication </h3>
+  <%= form_tag root_path do %>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12 form-group">
+      <label class="control-label">Please enter Authentication Key</label>
+    </div>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
+      <%= password_field_tag :authentication_key, '', class: 'form-control' %><br/>
+    </div><br/>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
+      <%= submit_tag :Proceed, class: 'btn btn-primary' %>
+    </div>
+  <% end %>
+</div>

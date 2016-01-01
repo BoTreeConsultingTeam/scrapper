@@ -1,7 +1,10 @@
 Rails.application.routes.draw do
   get 'scrapper/index'
 
-  root 'web_scraper#new'
+  # root 'web_scraper#new'
+  root 'web_scraper#authentication', via: [:get, :post]
+
+  get 'web_scraper/new'
 
   post '/scrap_profile', to: 'web_scraper#scrap'
   post '/scrap_followers', to: 'web_scraper#scrap_followers'
