@@ -16,6 +16,7 @@ class WebScraperController < ApplicationController
   def scrap
 
     @user_details = []
+    @retweet = []
     # mechanize = Mechanize.new
     page_count = 0
     elements_per_page = 20
@@ -48,10 +49,10 @@ class WebScraperController < ApplicationController
     session[:time] = (time_count + 30).to_f + default_time
     puts session[:current_time]
     puts session[:time]
-    @user_details.sort! {|a,b| a[4].to_i <=> b[4].to_i}
-    session[:details] = @user_details
+    # @user_details.sort! {|a,b| a[4].to_i <=> b[4].to_i}
+    session[:details] = @user_details 
     puts "Profile is fetched..."
-    csv_data_for_home_page
+     # csv_data_for_home_page
   end
 
   def scraped_data
@@ -85,9 +86,9 @@ class WebScraperController < ApplicationController
   private
   def csv_data_for_home_page
     CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../profile.csv", 'a+') do |csv|
-      csv << ['Name', 'Description', 'Tweets', 'Following', 'Followers', 'Likes', 'Location', 'Profile Pic URL']
+      csv << ['Name', 'Description', 'Tweets', 'Following', 'Followers', 'Likes', 'Location', 'Profile Pic URL','Retweet']
       session[:details].each do |item|
-        csv << item
+        csv << item.flatten
       end
     end
   end
@@ -110,8 +111,11 @@ class WebScraperController < ApplicationController
       puts "HTML files are created"
       folowers_file = File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_followers.html")
       folowing_file = File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_following.html")
+      tweets_file = File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_tweets.html")
+      
       folowers_page = Nokogiri::HTML(folowers_file)
       folowing_page = Nokogiri::HTML(folowing_file)
+      tweets_page = Nokogiri::HTML(tweets_file)
 
       folowers_fullname = folowers_page.search('.fullname').map(&:text)
       folowers_username = folowers_page.search('.username').map(&:text)
@@ -119,9 +123,17 @@ class WebScraperController < ApplicationController
       folowing_fullname = folowing_page.search('.fullname').map(&:text)
       folowing_username = folowing_page.search('.username').map(&:text)
 
+      retweet_count = tweets_page.search('.tweet-social-context').map(&:text).count
+      @retweet << [retweet_count] 
+      # tweet_fullname = tweets_page.search('.fullname').map(&:text)
+      # tweet_username = tweets_page.search('.username').map(&:text)
+      # tweet_text = tweets_page.search('.tweet-text').map(&:text)
+
       followers = folowers_fullname.zip(folowers_username)
       following = folowing_fullname.zip(folowing_username)
+      # tweets = tweet_fullname.zip(tweet_username,tweet_text)
       # list = followers.zip(following)
+
 
       CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_followers.csv", 'a+') do |csv|
       csv << ['Follower full name', 'Follower user name']
@@ -140,8 +152,19 @@ class WebScraperController < ApplicationController
         #   csv << data.flatten.insert(2, "")
         # end   
       end
+
+      # CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_tweets.csv", 'a+') do |tweet_csv|
+      #   tweet_csv << ['fullname','username','tweet text']
+      #   tweets.each do |tweet|
+      #     tweet_csv << tweet.flatten.map(&:strip)
+      #   end
+      #   puts "csv file for tweets are created"
+      # end
       puts "Stop for #{user}"
     end
+    session[:details] = session[:details].zip(@retweet)
+    session[:details].sort! {|a,b| a[4].to_i <=> b[4].to_i}
+    csv_data_for_home_page
   end
 
   def create_zip_file_and_send_email
