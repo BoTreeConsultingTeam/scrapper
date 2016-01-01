@@ -44,12 +44,22 @@ class WebScraperController < ApplicationController
       counts = page.search('ul.ProfileNav-list li span.ProfileNav-value').children.map(&:text).first(4)
       location = page.search('span.ProfileHeaderCard-locationText a').text
       profile_pic = page.search('img.ProfileAvatar-image @src').text
+      counts[2] = counts[2].gsub(',', '')
+      counts[1] = counts[1].gsub(',', '')
       if counts[2].include?('More')
         counts[2] = 0
       elsif counts[2].include?('K')
         counts[2] = counts[2].to_f * 1000
       elsif counts[2].include?('M')
         counts[2] = counts[2].to_f * 10_00_000
+      end
+
+      if counts[1].include?('More')
+        counts[1] = 0
+      elsif counts[1].include?('K')
+        counts[1] = counts[1].to_f * 1000
+      elsif counts[1].include?('M')
+        counts[1] = counts[1].to_f * 10_00_000
       end
       counts[2] = counts[2].to_i
       @user_details << [title, about_user, counts, location, profile_pic].flatten
