@@ -5,7 +5,7 @@
 <% session[:download_time].strftime('%H h %M m %S s') %>
 
 We are working on it. Please wait for a few minutes<br/>
-Approximate time <%= session[:time].to_f / 60 %> minutes. <br/>
+Approximate time <%= (session[:time].to_f / 60).round(2) %> minutes. <br/>
 
 
 <% unless session[:message].present? %>

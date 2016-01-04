@@ -32,7 +32,7 @@ class WebScraperController < ApplicationController
     # mechanize = Mechanize.new
     page_count = 0
     elements_per_page = 20
-    time_to_scroll_once = 3
+    time_to_scroll_once = 2.3
     default_time = 90
     params[:user_name_list].split(',').each do |user_name|
       page = Nokogiri::HTML(open("https://twitter.com/#{user_name.try(:strip)}"))
@@ -46,24 +46,14 @@ class WebScraperController < ApplicationController
       profile_pic = page.search('img.ProfileAvatar-image @src').text
       counts[2] = counts[2].gsub(',', '')
       counts[1] = counts[1].gsub(',', '')
-      if counts[2].include?('More')
-        counts[2] = 0
-      elsif counts[2].include?('K')
-        counts[2] = counts[2].to_f * 1000
-      elsif counts[2].include?('M')
-        counts[2] = counts[2].to_f * 10_00_000
-      end
-
-      if counts[1].include?('More')
-        counts[1] = 0
-      elsif counts[1].include?('K')
-        counts[1] = counts[1].to_f * 1000
-      elsif counts[1].include?('M')
-        counts[1] = counts[1].to_f * 10_00_000
-      end
-      counts[2] = counts[2].to_i
+      counts[0] = counts[0].gsub(',', '')
+      
+      counts[1] = convert_to_int(1,counts)
+      counts[2] = convert_to_int(2,counts)
+      counts[0] = convert_to_int(0,counts)
+      
       @user_details << [title, about_user, counts, location, profile_pic].flatten
-      page_count += ( counts[1].to_i + counts[2].to_i )
+      page_count += ( counts[1].to_i + counts[2].to_i + counts[0].to_i )
     end
     time_count = (page_count / elements_per_page).to_f * time_to_scroll_once
     session[:current_time] = Time.now.in_time_zone(params[:timezone])
@@ -75,6 +65,18 @@ class WebScraperController < ApplicationController
     session[:details] = @user_details 
     puts "Profile is fetched..."
      # csv_data_for_home_page
+  end
+
+  def convert_to_int(index,counts)
+    if counts[index].include?('More')
+      return 0
+    elsif counts[index].include?('K')
+      return counts[index].to_f * 1000
+    elsif counts[index].include?('M')
+      return counts[index].to_f * 10_00_000
+    else
+      return counts[index]
+    end
   end
 
   def scraped_data
