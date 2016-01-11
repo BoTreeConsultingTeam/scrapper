@@ -93,6 +93,25 @@ class WebScraperController < ApplicationController
     session[:user_name_list] = params[:user_name_list]
     Thread.new { fetch_followers_of_users_and_scrap }
   end
+
+  def scrap_instagram(user)
+    agent = Mechanize.new
+    page = agent.get("https://www.instagram.com/#{user}")
+
+    element = agent.page.search("script")[6]
+    text = element.text
+
+    followed_count = text.match(/\"followed_by\"\:\{"count":\d+/)[0].split(':').last
+    follows = text.match(/\"follows\"\:\{"count":\d+/)[0].split(':').last
+    media = text.match(/\"media\"\:\{"count":\d+/)[0].split(':').last
+
+
+    CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_instagram.csv", 'a+') do |csv|
+
+      csv << ['username','posts','follows','follower']
+      csv << [user,media,follows,followed_count]
+    end
+  end
   
   def assign_email
     session[:email] = params[:email]
