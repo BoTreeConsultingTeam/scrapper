@@ -1,28 +1,47 @@
 <div class="container">
-  <!-- <h3> Profile </h3> -->
-  <% form_tag scrap_profile_path do %>
+  <h3 class="red-text col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12"> Note: You can access only one service at a time.</h3>
+</div>
+<div class="clearfix"></div>
+<div class="container">
+  <h3> Facebook </h3>
+  <%= form_tag scrap_from_fb_path do %>
     <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12 form-group">
       <label class="control-label">Please enter twitter handles separated by comma (Maximum 25)</label>
     </div>
     <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
-      <% text_area_tag :user_name_list, '', placeholder: 'enter multiple user separating by coma', cols: 25, rows: 5, class: 'form-control' %><br/>
+      <%= text_area_tag :user_name_list, '', placeholder: 'enter multiple user separating by coma', cols: 25, rows: 3, class: 'form-control' %><br/>
     </div><br/>
     <div class="col-lg-offset-2 col-md-offset-2 col-lg-6col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
     
-      <% submit_tag :scrap, class: 'btn btn-primary' %>
+      <%= submit_tag :scrap, class: 'btn btn-primary' %>
     </div>
   <% end %>
 </div>
 
 <div class="container">
-  <h3> Followers </h3>
-  <%= form_tag scrap_followers_path do %>
+  <h3> Twitter </h3>
+  <%= form_tag scrap_from_twitter_path do %>
     <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12 form-group">
       <label class="control-label">Please enter twitter handles separated by comma (Maximum 25)</label>
     </div>
     <%= hidden_field_tag :timezone, '', class: 'time-zone' %>
     <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
-      <%= text_area_tag :user_name_list, '', placeholder: 'enter multiple user separating by coma', cols: 25, rows: 5, class: 'form-control' %><br/>
+      <%= text_area_tag :user_name_list, '', placeholder: 'enter multiple user separating by coma', cols: 25, rows: 3, class: 'form-control' %><br/>
+    </div><br/>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
+      <%= submit_tag :Extract, class: 'btn btn-primary' %>
+    </div>
+  <% end %>
+</div>
+<div class="container">
+  <h3> FB fan page </h3>
+  <%= form_tag scrap_db_fan_page_path do %>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12 form-group">
+      <label class="control-label">Please enter twitter handles separated by comma (Maximum 25)</label>
+    </div>
+    <%= hidden_field_tag :timezone, '', class: 'time-zone' %>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
+      <%= text_area_tag :user_name_list, '', placeholder: 'enter multiple user separating by coma', cols: 25, rows: 3, class: 'form-control' %><br/>
     </div><br/>
     <div class="col-lg-offset-2 col-md-offset-2 col-lg-6col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
       <%= submit_tag :Extract, class: 'btn btn-primary' %>

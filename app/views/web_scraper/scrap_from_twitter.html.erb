@@ -1,0 +1,32 @@
+<%= link_to 'Home', root_path, class: 'btn btn-default' %>
+<h2> Sit back and get relaxed, You will get zip file of scrapped data, Thanks. </h2>
+<% session[:current_time].strftime('%H h %M m %S s') %> 
+<% session[:time].to_i %>
+<% session[:download_time].strftime('%H h %M m %S s') %>
+
+We are working on it. Please wait for a few minutes<br/>
+Approximate time <%= (session[:time].to_f / 60).round(2) %> minutes. <br/>
+
+
+<% unless session[:message].present? %>
+  <script type="text/javascript">
+    setTimeout(function(){
+      $.ajax({
+        method: 'GET',
+        url: '/send_list_of_followers',
+        success: function(){
+          window.location.replace('/assign_email');
+        }
+      });
+      console.log('hello');
+    }, 30000);
+  </script>
+<% else %>
+  <script type="text/javascript">
+    $(document).ready(function(){
+      window.location.replace('/scraped_data.zip');
+    });
+
+  </script>
+  
+<% end %>

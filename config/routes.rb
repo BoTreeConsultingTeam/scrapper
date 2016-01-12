@@ -7,8 +7,12 @@ Rails.application.routes.draw do
   get 'web_scraper/new'
 
   post '/scrap_profile', to: 'web_scraper#scrap'
-  post '/scrap_followers', to: 'web_scraper#scrap_followers'
-  
+  post '/scrap_from_twitter', to: 'web_scraper#scrap_from_twitter'
+  post '/scrap_from_fb', to: 'web_scraper#scrap_from_fb'
+  post '/scrap_db_fan_page', to: 'web_scraper#scrap_db_fan_page'
+  get '/waiting', to: 'web_scraper#waiting'
+  get '/fb_scrapped_file', to: 'web_scraper#fb_scrapped_file'
+  # get '/fb_scrapped_data', to: 'web_scraper#fb_scrapped_data'
   get 'scrapper/view'
 
   get 'scraped_data', to: 'web_scraper#scraped_data'

@@ -1,0 +1,28 @@
+<%= link_to 'Home', root_path, class: 'btn btn-default' %>
+<h2> Sit back and get relaxed, You will get csv file of scrapped data, Thanks. </h2>
+<% if session[:error].present? %>
+  Something went wrong, please try again.
+<% elsif session[:message].present? %>
+  Your download is started,<br/>
+  <script type="text/javascript">
+    $(document).ready(function(){
+      setTimeout(function(){
+        window.location.replace('/fb_scrapped_file.csv');
+      }, 300);
+    });
+  </script>
+  
+<% else %>
+  <script type="text/javascript">
+    setTimeout(function(){
+      $.ajax({
+        method: 'GET',
+        url: '/send_list_of_followers',
+        success: function(){
+          location.reload();
+        }
+      });
+      console.log('hello');
+    }, 30000);
+  </script>
+<% end %>
