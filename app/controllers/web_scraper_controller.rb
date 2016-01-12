@@ -132,6 +132,31 @@ class WebScraperController < ApplicationController
     end
   end
 
+  def vine_scraper
+    params[:user_names].split(',').each do |user|
+      agent = Mechanize.new
+      page = agent.get(" https://vine.co/api/users/profiles/vanity/#{user}")
+
+      body = page.body
+      d = JSON(body)
+
+      username = d['data']['username']
+      userid = d['data']['userId']
+      description = d['data']['description']
+      followers = d['data']['followerCount']
+      following = d['data']['followingCount']
+      posts = d['data']['postCount']
+      likes = d['data']['likeCount']
+      loops = d['data']['loopCount']
+
+
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}.csv", 'a+') do |csv|
+        csv << ['username','userid','description','followers','following','posts','likes','loops']
+        csv << [username,userid,description,followers,following,posts,likes,loops]
+      end
+    end
+  end
+
   private
   def csv_data_for_home_page
     CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../profile.csv", 'a+') do |csv|
