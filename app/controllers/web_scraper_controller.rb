@@ -138,7 +138,7 @@ class WebScraperController < ApplicationController
       page = agent.get(" https://vine.co/api/users/profiles/vanity/#{user}")
 
       body = page.body
-      d = JSON(body)
+      d = JSON.parse(body)
 
       username = d['data']['username']
       userid = d['data']['userId']
