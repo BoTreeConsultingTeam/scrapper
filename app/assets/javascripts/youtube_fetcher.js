@@ -5,22 +5,28 @@ var username = system.args[1];
 
 var url = 'https://www.youtube.com/user/' + username + '/about';
 var url_playlist = 'https://www.youtube.com/user/' + username + '/playlists';
+var total_subscribers;
+var total_views;
+var playlists;
+var total_videos;
 
+
+function youtubeScrap(){
 
 	page.open(url , function(){
 
 		var subscribers = page.evaluate(function () {
-        return document.querySelector('span.about-stat b').innerHTML + '\n';
+        return document.querySelector('span.about-stat b').innerHTML;
     });
-		var total_subscribers = getNumberFromString(subscribers);
+		total_subscribers = getNumberFromString(subscribers);
 
     console.log('Total subscribers are : ' + total_subscribers);
     fs.write( username+'.txt', total_subscribers, 'a');
 
     var views = page.evaluate(function () {
-        return document.querySelectorAll('span.about-stat b')[1].innerHTML + '\n';
+        return document.querySelectorAll('span.about-stat b')[1].innerHTML;
     });
-    var total_views = getNumberFromString(views);
+    total_views = getNumberFromString(views);
 
     console.log('Total views are : ' + total_views);
     fs.write( username+'.txt', total_views, 'a');
@@ -67,6 +73,7 @@ var url_playlist = 'https://www.youtube.com/user/' + username + '/playlists';
 			      		  	console.log("no more playlists.............");
 			      		  	console.log("no more videos..........");
 			      		  	clearInterval(c);
+			      		  	console.log('{"totalSubscribers": '+total_subscribers+', "totalViews": '+total_views+', "totalPlaylists": '+playlists+', "totalVideos": '+total_videos+'}');
 			      		  	phantom.exit();
 
 			      		  }
@@ -79,9 +86,13 @@ var url_playlist = 'https://www.youtube.com/user/' + username + '/playlists';
 
 	}
 
+};
+
+	
+
 function calculateTotalvideos(){
 
-		var total_videos = page.evaluate(function(){
+		total_videos = page.evaluate(function(){
                var sum = 0;
                var total_video_count = document.querySelectorAll('div.yt-lockup-thumbnail').length;
 
@@ -93,7 +104,7 @@ function calculateTotalvideos(){
 
                 }
 
-            return 'Total videos are ==== ' + sum + '\n';
+            return sum;
 
             });
 		    fs.write( username+'.txt', total_videos , 'a');
@@ -103,7 +114,7 @@ function calculateTotalvideos(){
 
 function calculateTotalPlaylists(){
 
-			var playlists = page.evaluate(function(){
+			playlists = page.evaluate(function(){
 
 					return document.querySelectorAll('div.yt-lockup-thumbnail').length;
 
@@ -143,3 +154,7 @@ function getNumberFromString(numStr){
   var numberVal = numStr.replace(/,/g,'');
   return numberVal;
 }
+
+window.setTimeout(function(){
+	youtubeScrap();
+},2000);

@@ -94,25 +94,6 @@ class WebScraperController < ApplicationController
     Thread.new { fetch_followers_of_users_and_scrap }
   end
 
-  def scrap_instagram(user)
-    agent = Mechanize.new
-    page = agent.get("https://www.instagram.com/#{user}")
-
-    element = agent.page.search("script")[6]
-    text = element.text
-
-    followed_count = text.match(/\"followed_by\"\:\{"count":\d+/)[0].split(':').last
-    follows = text.match(/\"follows\"\:\{"count":\d+/)[0].split(':').last
-    media = text.match(/\"media\"\:\{"count":\d+/)[0].split(':').last
-
-
-    CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_instagram.csv", 'a+') do |csv|
-
-      csv << ['username','posts','follows','follower']
-      csv << [user,media,follows,followed_count]
-    end
-  end
-  
   def assign_email
     session[:email] = params[:email]
   end
@@ -123,6 +104,31 @@ class WebScraperController < ApplicationController
     if number_of_files == (number_of_users+1)
       create_zip_file_and_send_email
       session[:message] = 'Mail is sent'
+    end
+  end
+
+  def youtube_scraper
+    params[:user_names].split(',').each_with_index do |user,index|
+      yt_response = ''
+      Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/youtube_fetcher.js", user.try(:strip)){ |line| puts yt_response = line }
+      puts "#{yt_response}"
+      yt_response = JSON.parse(yt_response)
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}.csv", "a+") do |csv| 
+        csv << yt_response.keys if index == 0
+        csv << yt_response.values
+      end
+    end
+  end
+
+  def instagram_scraper
+    params[:user_names].split(',').each_with_index do |user,index|
+      ig_response = ''
+      Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/instagram_fetcher.js", user.try(:strip)){ |line| puts ig_response = line }
+      ig_response = JSON.parse(ig_response)
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}.csv", "a+") do |csv| 
+        csv << ig_response.keys if index == 0
+        csv << ig_response.values
+      end
     end
   end
 
@@ -209,6 +215,8 @@ class WebScraperController < ApplicationController
     session[:details].sort! {|a,b| a[4].to_i <=> b[4].to_i}
     csv_data_for_home_page
   end
+
+  
 
   def create_zip_file_and_send_email
     Rails.logger.debug '=====> Start Compressing'

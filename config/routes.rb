@@ -8,7 +8,8 @@ Rails.application.routes.draw do
 
   post '/scrap_profile', to: 'web_scraper#scrap'
   post '/scrap_followers', to: 'web_scraper#scrap_followers'
-  
+  post '/scrap_youtube', to: 'web_scraper#youtube_scraper'
+  post '/scrap_instagram', to: 'web_scraper#instagram_scraper'
   get 'scrapper/view'
 
   get 'scraped_data', to: 'web_scraper#scraped_data'
