@@ -8,7 +8,7 @@ require 'zip'
 # Phantomjs.path
 
 class WebScraperController < ApplicationController
-  after_action :delete_zip_file, only: :scraped_data
+  after_action :delete_zip_file, only: [:scraped_data, :fb_scrapped_file]
   before_action :authentication, only: :new
 
   def new
@@ -87,11 +87,32 @@ class WebScraperController < ApplicationController
     end
   end
 
-  def scrap_followers
+  def scrap_from_twitter
     scrap
     puts "start fetching followers and following"
     session[:user_name_list] = params[:user_name_list]
     Thread.new { fetch_followers_of_users_and_scrap }
+  end
+  
+  def scrap_from_fb
+    puts "Start fetching fb data"
+    session[:file] = 'fb_profile.csv'
+    session[:user_name_list] = params[:user_name_list]
+    Thread.new {fetch_fb_data}
+    redirect_to waiting_path
+  end
+
+  def waiting
+    if File.exist?("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
+      session[:message] = 'Ready to Download'
+    end
+  end
+  
+  def fb_scrapped_file
+    respond_to do|format|
+      format.html
+      format.csv {send_data File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")}
+    end
   end
 
   def assign_email
@@ -103,7 +124,8 @@ class WebScraperController < ApplicationController
     number_of_files = Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*.csv"].count
     if number_of_files == (number_of_users+1)
       create_zip_file_and_send_email
-      session[:message] = 'Mail is sent'
+      session[:message] = 'Ready to Download'
+      session[:file] = 'scrapped_data.zip'
     end
   end
 
@@ -156,8 +178,71 @@ class WebScraperController < ApplicationController
       end
     end
   end
+  def scrap_db_fan_page
+    session[:file] = 'fb_fan_details.csv'
+    session[:user_name_list] = params[:user_name_list]
+    Thread.new{fetch_fb_fan_page_data}
+    redirect_to waiting_path
+  end
 
   private
+
+  def fetch_fb_fan_page_data
+    params[:user_name_list].split(',').each_with_index do |user, index|
+      fb_response = ''
+      Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/facebook_fan_page_fetcher.js", user.try(:strip), ENV['FB_USER_NAME'], ENV['FB_PASSWD']) {|line| puts fb_response = line}
+      fan_page_data = JSON.parse(fb_response)
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+') do |csv|
+        csv << [ 'username', fan_page_data.keys].flatten if index == 0
+        csv << [ user, fan_page_data.values].flatten
+      end
+    end
+    File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
+  end
+
+  def fetch_fb_data
+    params[:user_name_list].split(',').each do |user|
+      response = ''
+      user = user.strip
+      puts "Starting for #{user}"
+      Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/facebook_fetcher.js", user.try(:strip), ENV['FB_USER_NAME'], ENV['FB_PASSWD']) {|line| puts response = line}
+      puts "HTML files are created"
+      if (response == 'failur')
+        session[:error] = 'Unable to load page'
+      end
+    end
+    user_profile_data = []
+    user_photos = []
+    
+    Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*_profile.html"].each_with_index do |file, index|
+      profile_data = File.read(file)
+      scrap_data = Nokogiri::HTML(profile_data)
+      posts = scrap_data.search('article.async_like').count
+      likes = scrap_data.search('span.like_def._28wy').map(&:text).inject {|total_likes, like| total_likes.to_i + like.split('Like').first.to_i}
+      comments = scrap_data.search('span.cmt_def._28wy').map(&:text).inject {|total_comments, comment| total_comments.to_i + comment.split('Comments').first.to_i}
+      shares = scrap_data.search('span._28wy').map(&:text).inject {|share_count, share| share_count.to_i + share.split('Shares').first.to_i}
+      friends = scrap_data.search('span._52je._52j9').children.text
+      total_friends_count = friends.include?('(') ? friends.split('(').first : friends.include?('friends') ? '' : friends.match(/\d+/)[0]
+      mutual_firends = friends.include?('(') ? friends.split('(').last.split('Mutual').first : friends.include?('friends') ? friends.match(/\d+/)[0] : ''
+      user_profile_data << [file.split('fb_').last.split('_profile').first, posts, likes, comments, shares, total_friends_count, mutual_firends]
+    end
+
+    Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*_photos.html"].each_with_index do |file, index|
+      profile_data = File.read(file)
+      scrap_data = Nokogiri::HTML(profile_data)
+      
+      posts = scrap_data.search('span a._39pi._4dvp').count
+      user_photos << [posts]
+
+    end
+    user_profile_data = user_profile_data.zip(user_photos)
+    CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}", 'a+') do |csv|
+      csv << ['UserName', 'Posts', 'Likes', 'Comments', 'Shares', 'total_firends', 'mutual_firends', 'photos']
+      user_profile_data.each {|details| csv << details.flatten }
+    end
+    Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*.html"].each {|file| File.delete("#{file}") }
+  end
+
   def csv_data_for_home_page
     CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../profile.csv", 'a+') do |csv|
       csv << ['Name', 'Description', 'Tweets', 'Following', 'Followers', 'Likes', 'Location', 'Profile Pic URL','Retweet']
@@ -268,7 +353,9 @@ class WebScraperController < ApplicationController
   end
 
   def delete_zip_file
-    sleep 5
-    File.delete("#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data.zip")
+    Thread.new do
+      sleep 45
+      File.delete("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
+    end
   end
 end
