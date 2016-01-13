@@ -6,14 +6,15 @@ var totalFollowing = 0;
 
 var totalTweets = 0;
 // var totalRts = 0;
-
+var index = 0;
+var completed = 0;
 // Exit if no twitter handle is passed
 if(system.args.length === 1) {
   console.log("Pass <userhandle> <username> <password> ...");
   phantom.exit();
 }
 
-var userhandle = system.args[1];
+var userhandle = system.args[1].split(',');
 var username = system.args[2];
 var password = system.args[3];
 
@@ -34,10 +35,9 @@ function isConnectionSuccess(status){
   // console.log(page.content);
   if (status !== 'success') {
     console.log('==> Unable to access network, exiting...');
-    return false;
-  } else{
-    return true;
-  }
+    // return false;
+  } 
+  return true;
 }
 /* 
 * Login into twitter 
@@ -54,12 +54,30 @@ function login() {
         document.forms[0].submit();
       }, username, password);
 
-      setTimeout(function(){
+      // setTimeout(function(){
         // console.log('=====================> Content : '+page.content);
-        openConnectionPage('profile');
+      // openConnectionPage('profile');
+      var seq = window.setInterval(function(){
+
+        if(index == userhandle.length && completed == userhandle.length){
+          clearInterval(seq);
+          console.log("All users completed...");
+          phantom.exit();
+          return;
+        }
+
+        if(index == completed) {
+          window.setTimeout(function(){
+            openConnectionPage(userhandle[index].trim());
+            index++;
+          }, 6000);
+        } else {
+          console.log("Waiting for current task to be done for " + userhandle[index-1] + " ...");
+        }
+      }, 15000);
         // openPhotosPage();
         // openTweetsPage();
-      }, 15000);
+      // }, 15000);
     }
   });
 }
@@ -85,7 +103,7 @@ function isPageLoaded(selector){
 * file based on the passed fileMode 
 */
 
-function calculateTotalAndStoreHtml(fileMode, connectionType){
+function calculateTotalAndStoreHtml(user, fileMode, connectionType){
   
   var contentSelector = "";
   var contentLengthSelector = "";
@@ -124,7 +142,7 @@ function calculateTotalAndStoreHtml(fileMode, connectionType){
     totalTweets = totalItems;
   }
 
-  fs.write("fb_"+userhandle+'_'+connectionType+'.html', connectionHtml, fileMode);
+  fs.write("fb_"+user+'_'+connectionType+'.html', connectionHtml, fileMode);
 }
 
 /* 
@@ -154,11 +172,11 @@ function executeClickOn(selector){
 */
 
 var failur = 0;
-function openConnectionPage(connectionType) {
-  console.log("==> Opening "+connectionType+" page...");
+function openConnectionPage(user, connectionType) {
+  console.log("==> Opening "+user+"'s profile page...");
   var pageNum = 1;
   var count = 0;
-  page.open('https://m.facebook.com/'+userhandle, function (status) {
+  page.open('https://m.facebook.com/'+user, function (status) {
     // console.log("==> "+connectionType+" status =>"+status);
     if (isConnectionSuccess(status)) {
       // console.log("==> page = "+ pageNum);
@@ -172,7 +190,7 @@ function openConnectionPage(connectionType) {
 
         if(totalCount == 0) {
           window.setTimeout(function(){
-            calculateTotalAndStoreHtml('w','profile');
+            calculateTotalAndStoreHtml(user, 'w','profile');
           }, 100);
         }
 
@@ -186,7 +204,7 @@ function openConnectionPage(connectionType) {
           if(count >= 2){
             clearInterval(c);
             setTimeout(function(){
-              openPhotosPage();
+              openPhotosPage(user);
             }, 1000);
           }else if(hasMoreItems == false){
             count++;
@@ -201,7 +219,7 @@ function openConnectionPage(connectionType) {
             executeClickOn();
 
             window.setTimeout(function(){
-              calculateTotalAndStoreHtml('a','profile');
+              calculateTotalAndStoreHtml(user, 'a','profile');
             }, 4000);
           } else { // Found
             console.log("==> Completing "+connectionType+"...")
@@ -210,8 +228,8 @@ function openConnectionPage(connectionType) {
             isLoaded = false;
             clearInterval(c);
             setTimeout(function(){
-              openPhotosPage();
-            }, 1000);
+              openPhotosPage(user);
+            }, 1500);
             
             // phantom.exit(); 
             // if(connectionType == "followers") {
@@ -235,21 +253,21 @@ function openConnectionPage(connectionType) {
         openConnectionPage('profile');  
       }, 5000);
       
-      if(failur > 4){
-        console.log('failur');
-        phantom.exit();
-      }
+      // if(failur > 4){
+      //   console.log('failur');
+      //   // phantom.exit();
+      // }
     }
   });
 }
 /* 
 * Open Photos page, follow all pages until the last page and store the full HTML page.
 */
-function openPhotosPage() {
+function openPhotosPage(user) {
   var connectionType = "photos";
   console.log("==> Open user's photos page...");
   var pageNum = 1;
-  page.open('https://m.facebook.com/'+userhandle+"/photos", function(status){
+  page.open('https://m.facebook.com/'+user+"/photos", function(status){
     console.log("Opening tweets page...")
     console.log("Photos status -> " + status);
     if (isConnectionSuccess(status)) {
@@ -263,7 +281,7 @@ function openPhotosPage() {
         if(totalTweets == 0) {
           console.log("Total Photos = 0, first time writing to file...");
           window.setTimeout(function(){
-            calculateTotalAndStoreHtml('w',connectionType);
+            calculateTotalAndStoreHtml(user, 'w',connectionType);
           }, 1000);
         }
         // window.document.body.scrollTop = document.body.scrollHeight;
@@ -281,14 +299,15 @@ function openPhotosPage() {
 
             executeClickOn();
             window.setTimeout(function(){
-              calculateTotalAndStoreHtml('a',connectionType);
+              calculateTotalAndStoreHtml(user, 'a',connectionType);
             }, 5000);
           } else { 
             isLoaded = false;
             console.log("==> Completing "+connectionType+"...")
             console.log("==> Total "+connectionType+" = "+ totalTweets);
             clearInterval(b);
-            phantom.exit(); 
+            
+            // phantom.exit(); 
           }
         }, 1000);
 
@@ -296,14 +315,15 @@ function openPhotosPage() {
     }else{
       failur++;
       setTimeout(function(){
-        openConnectionPage('profile');  
+        openConnectionPage('photos');  
       }, 5000);
       
       if(failur > 4){
         console.log('failur');
-        phantom.exit();
+        // phantom.exit();
       }
     }
+    completed++;
   });
 }
 

@@ -25,60 +25,6 @@ class WebScraperController < ApplicationController
     end
   end
 
-  def scrap
-
-    @user_details = []
-    @retweet = []
-    # mechanize = Mechanize.new
-    page_count = 0
-    elements_per_page = 20
-    time_to_scroll_once = 2.3
-    default_time = 90
-    params[:user_name_list].split(',').each do |user_name|
-      page = Nokogiri::HTML(open("https://twitter.com/#{user_name.try(:strip)}"))
-      # page = mechanize.get('https://twitter.com/santosh4892')
-      # Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../assets/javascripts/1.js")
-      title = page.title
-      about_user = page.search('p.ProfileHeaderCard-bio').text
-      # @counts =  page.search('ul.ProfileNav-list li span.ProfileNav-label').children.map(&:text).zip(page.search('ul.ProfileNav-list li span.ProfileNav-value').children.map(&:text)).first(4)
-      counts = page.search('ul.ProfileNav-list li span.ProfileNav-value').children.map(&:text).first(4)
-      location = page.search('span.ProfileHeaderCard-locationText a').text
-      profile_pic = page.search('img.ProfileAvatar-image @src').text
-      counts[2] = counts[2].gsub(',', '')
-      counts[1] = counts[1].gsub(',', '')
-      counts[0] = counts[0].gsub(',', '')
-      
-      counts[1] = convert_to_int(1,counts)
-      counts[2] = convert_to_int(2,counts)
-      counts[0] = convert_to_int(0,counts)
-      
-      @user_details << [title, about_user, counts, location, profile_pic].flatten
-      page_count += ( counts[1].to_i + counts[2].to_i + counts[0].to_i )
-    end
-    time_count = (page_count / elements_per_page).to_f * time_to_scroll_once
-    session[:current_time] = Time.now.in_time_zone(params[:timezone])
-    session[:download_time] = Time.now.in_time_zone(params[:timezone]) + time_count + default_time
-    session[:time] = (time_count + 30).to_f + default_time
-    puts session[:current_time]
-    puts session[:time]
-    # @user_details.sort! {|a,b| a[4].to_i <=> b[4].to_i}
-    session[:details] = @user_details 
-    puts "Profile is fetched..."
-     # csv_data_for_home_page
-  end
-
-  def convert_to_int(index,counts)
-    if counts[index].include?('More')
-      return 0
-    elsif counts[index].include?('K')
-      return counts[index].to_f * 1000
-    elsif counts[index].include?('M')
-      return counts[index].to_f * 10_00_000
-    else
-      return counts[index]
-    end
-  end
-
   def scraped_data
     respond_to do |format|
       # format.csv { send_data csv_data_for_home_page  }
@@ -130,14 +76,16 @@ class WebScraperController < ApplicationController
   end
 
   def youtube_scraper
-    params[:user_names].split(',').each_with_index do |user,index|
-      yt_response = ''
-      Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/youtube_fetcher.js", user.try(:strip)){ |line| puts yt_response = line }
-      puts "#{yt_response}"
-      yt_response = JSON.parse(yt_response)
-      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}.csv", "a+") do |csv| 
-        csv << yt_response.keys if index == 0
-        csv << yt_response.values
+    Thread.new do
+      params[:user_names].split(',').each_with_index do |user,index|
+        yt_response = ''
+        Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/youtube_fetcher.js", user.try(:strip)){ |line| puts yt_response = line }
+        puts "#{yt_response}"
+        yt_response = JSON.parse(yt_response)
+        CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}.csv", "a+") do |csv| 
+          csv << yt_response.keys if index == 0
+          csv << yt_response.values
+        end
       end
     end
   end
@@ -241,6 +189,7 @@ class WebScraperController < ApplicationController
         end
     end
   end
+
   def scrap_db_fan_page
     session[:file] = 'fb_fan_details.csv'
     session[:user_name_list] = params[:user_name_list]
@@ -251,29 +200,23 @@ class WebScraperController < ApplicationController
   private
 
   def fetch_fb_fan_page_data
-    params[:user_name_list].split(',').each_with_index do |user, index|
-      fb_response = ''
-      Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/facebook_fan_page_fetcher.js", user.try(:strip), ENV['FB_USER_NAME'], ENV['FB_PASSWD']) {|line| puts fb_response = line}
-      fan_page_data = JSON.parse(fb_response)
-      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+') do |csv|
-        csv << [ 'username', fan_page_data.keys].flatten if index == 0
-        csv << [ user, fan_page_data.values].flatten
+    fb_response = ''
+    Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/facebook_fan_page_fetcher.js", params[:user_name_list], ENV['FB_USER_NAME'], ENV['FB_PASSWD']) {|line| puts fb_response = line}
+    binding.pry
+    fan_page_data = fb_response.gsub("\"",'').split(/}\s*,\s*{/).map{|s| Hash[s.scan(/(\w+):\s*(\d+|\w+)/).map{|t| [t[0], t[1]]}]}
+    CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+') do |csv|
+      fan_page_data.each_with_index do |details, index|
+        csv << [ details.keys].flatten if index == 0
+        csv << [ details.values].flatten
       end
     end
     File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
   end
 
   def fetch_fb_data
-    params[:user_name_list].split(',').each do |user|
-      response = ''
-      user = user.strip
-      puts "Starting for #{user}"
-      Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/facebook_fetcher.js", user.try(:strip), ENV['FB_USER_NAME'], ENV['FB_PASSWD']) {|line| puts response = line}
-      puts "HTML files are created"
-      if (response == 'failur')
-        session[:error] = 'Unable to load page'
-      end
-    end
+    puts "Starting for #{user}"
+    Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/facebook_fetcher.js", params[:user_name_list], ENV['FB_USER_NAME'], ENV['FB_PASSWD']) {|line| puts response = line}
+    puts "HTML files are created"
     user_profile_data = []
     user_photos = []
     
@@ -296,8 +239,8 @@ class WebScraperController < ApplicationController
       
       posts = scrap_data.search('span a._39pi._4dvp').count
       user_photos << [posts]
-
     end
+
     user_profile_data = user_profile_data.zip(user_photos)
     CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}", 'a+') do |csv|
       csv << ['UserName', 'Posts', 'Likes', 'Comments', 'Shares', 'total_firends', 'mutual_firends', 'photos']
@@ -413,6 +356,60 @@ class WebScraperController < ApplicationController
 
     Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*csv"].each {|file| File.delete("#{file}") }
     Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*.html"].each {|file| File.delete("#{file}") }
+  end
+
+  def scrap
+
+    @user_details = []
+    @retweet = []
+    # mechanize = Mechanize.new
+    page_count = 0
+    elements_per_page = 20
+    time_to_scroll_once = 2.4
+    default_time = 120
+    params[:user_name_list].split(',').each do |user_name|
+      page = Nokogiri::HTML(open("https://twitter.com/#{user_name.try(:strip)}"))
+      # page = mechanize.get('https://twitter.com/santosh4892')
+      # Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../assets/javascripts/1.js")
+      title = page.title
+      about_user = page.search('p.ProfileHeaderCard-bio').text
+      # @counts =  page.search('ul.ProfileNav-list li span.ProfileNav-label').children.map(&:text).zip(page.search('ul.ProfileNav-list li span.ProfileNav-value').children.map(&:text)).first(4)
+      counts = page.search('ul.ProfileNav-list li span.ProfileNav-value').children.map(&:text).first(4)
+      location = page.search('span.ProfileHeaderCard-locationText a').text
+      profile_pic = page.search('img.ProfileAvatar-image @src').text
+      counts[2] = counts[2].gsub(',', '')
+      counts[1] = counts[1].gsub(',', '')
+      counts[0] = counts[0].gsub(',', '')
+      
+      counts[1] = convert_to_int(1,counts)
+      counts[2] = convert_to_int(2,counts)
+      counts[0] = convert_to_int(0,counts)
+      
+      @user_details << [title, about_user, counts, location, profile_pic].flatten
+      page_count += ( counts[1].to_i + counts[2].to_i + counts[0].to_i )
+    end
+    time_count = (page_count / elements_per_page).to_f * time_to_scroll_once
+    session[:current_time] = Time.now.in_time_zone(params[:timezone])
+    session[:download_time] = Time.now.in_time_zone(params[:timezone]) + time_count + default_time
+    session[:time] = (time_count + 30).to_f + default_time
+    puts session[:current_time]
+    puts session[:time]
+    # @user_details.sort! {|a,b| a[4].to_i <=> b[4].to_i}
+    session[:details] = @user_details 
+    puts "Profile is fetched..."
+     # csv_data_for_home_page
+  end
+
+  def convert_to_int(index,counts)
+    if counts[index].include?('More')
+      return 0
+    elsif counts[index].include?('K')
+      return counts[index].to_f * 1000
+    elsif counts[index].include?('M')
+      return counts[index].to_f * 10_00_000
+    else
+      return counts[index]
+    end
   end
 
   def delete_zip_file

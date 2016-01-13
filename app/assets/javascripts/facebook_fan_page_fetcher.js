@@ -16,7 +16,7 @@ if(system.args.length === 1) {
   phantom.exit();
 }
 
-var fanPageHandle = system.args[1];
+var fanPageHandle = system.args[1].split(',');
 var fbEmail = system.args[2];
 var password = system.args[3];
 
@@ -27,6 +27,9 @@ var MAX_PAGES_TO_SCROLL = 50;
 // page.onConsoleMessage = function(msg, lineNum, sourceId) {
 //   console.log('DEBUG: ' + msg);
 // };
+var index = 0;
+var completed = 0;
+var all_user_details = new Array();
 
 page.settings.javascriptEnabled = true;
 page.settings.loadImages = false;//Script is much faster with this field set to false
@@ -58,11 +61,25 @@ function login() {
         document.forms[0].submit();
       }, fbEmail, password);
 
-      setTimeout(function(){
-        // console.log('=====================> Content : '+page.content);
-        openFanPage('likes');
-        // openTweetsPage();
-      },6000);
+      var seq = window.setInterval(function(){
+
+        if(index == fanPageHandle.length && completed == fanPageHandle.length){
+          clearInterval(seq);
+          console.log("All users completed...");
+          console.log('['+all_user_details+']');
+          phantom.exit();
+          return;
+        }
+
+        if(index == completed) {
+          window.setTimeout(function(){
+            openFanPage(fanPageHandle[index].trim(), 'likes');
+            index++;
+          }, 6000);
+        } else {
+          console.log("Waiting for current task to be done for " + fanPageHandle[index-1] + " ...");
+        }
+      }, 15000);
     }
   });
 }
@@ -155,14 +172,15 @@ function calculatePhotoStatistics(){
 /*
 * Open FB fan page, find likes,photos and videos count
 */
+
 var pageStatisticsData;
 var videoStatisticsData;
 var photoStatisticsData;
-function openFanPage(innerPage) {
-  console.log("==> Opening fan page - " + fanPageHandle);
+function openFanPage(user, innerPage) {
+  console.log("==> Opening fan page - " + user);
   var pageNum = 1;
   var scroll_count = 0;
-  page.open('https://www.facebook.com/'+fanPageHandle + "/"+innerPage, function (status) {
+  page.open('https://www.facebook.com/'+user+ "/"+innerPage, function (status) {
     // console.log("==> "+connectionType+" status =>"+status);
     if (isConnectionSuccess(status)) {
 
@@ -182,7 +200,7 @@ function openFanPage(innerPage) {
           });
           console.log("People talking --> "+pageStatisticsData.totalPeopleTalking);
           console.log("Total page likes --> "+pageStatisticsData.totalPageLikes);
-          return openFanPage("videos");
+          return openFanPage(user, "videos");
         } else if(innerPage == 'videos'){
           if(!isPageLoaded("[id='pages_video_hub_all_videos_pagelet'] [class*='_51m-']")){
             return;
@@ -214,7 +232,7 @@ function openFanPage(innerPage) {
               console.log("Total Videos => " +videoStatisticsData.totalVideos); 
               console.log("Total Video views => " +videoStatisticsData.totalViews); 
               console.log("total Video likes => " +videoStatisticsData.totalLikes); 
-              return openFanPage("photos_stream");
+              return openFanPage(user, "photos_stream");
             }
           },2000);
           
@@ -253,15 +271,18 @@ function openFanPage(innerPage) {
               console.log("Total photos => " +photoStatisticsData.totalPhotos); 
               console.log("Total photos likes => " +photoStatisticsData.totalPhotosLikes); 
               console.log("Total photos comments => " +photoStatisticsData.totalPhotosComments); 
-              console.log('{"totalPeopleTalking": '+pageStatisticsData.totalPeopleTalking+', "totalPageLikes": '+pageStatisticsData.totalPageLikes+', "totalVideos": '+videoStatisticsData.totalVideos+', "totalVideoViews": '+videoStatisticsData.totalViews+', "totalVideoLikes": '+videoStatisticsData.totalLikes+', "totalPhotos": '+photoStatisticsData.totalPhotos+', "totalPhotosLikes":'+photoStatisticsData.totalPhotosLikes+', "totalPhotosComments": '+photoStatisticsData.totalPhotosComments+'}');
-              phantom.exit();  
+              var user_data = '{"user": "'+user+'", "totalPeopleTalking": '+pageStatisticsData.totalPeopleTalking+', "totalPageLikes": '+pageStatisticsData.totalPageLikes+', "totalVideos": '+videoStatisticsData.totalVideos+', "totalVideoViews": '+videoStatisticsData.totalViews+', "totalVideoLikes": '+videoStatisticsData.totalLikes+', "totalPhotos": '+photoStatisticsData.totalPhotos+', "totalPhotosLikes":'+photoStatisticsData.totalPhotosLikes+', "totalPhotosComments": '+photoStatisticsData.totalPhotosComments+'}';
+              console.log(user_data) ; 
+              all_user_details.push(user_data);
+              completed++; 
+              // phantom.exit(); 
             }
           },2000);
-          
         }
       }, 4000); // Number of milliseconds to wait between scrolls
     }
   });
+  
 }
 
 function getNumberFromString(numStr){

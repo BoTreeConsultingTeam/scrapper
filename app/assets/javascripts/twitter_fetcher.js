@@ -6,14 +6,15 @@ var totalFollowing = 0;
 
 var totalTweets = 0;
 // var totalRts = 0;
-
+var index = 0;
+var completed = 0;
 // Exit if no twitter handle is passed
 if(system.args.length === 1) {
   console.log("Pass <userhandle> <username> <password> ...");
   phantom.exit();
 }
 
-var userhandle = system.args[1];
+var userhandle = system.args[1].split(',');
 var username = system.args[2];
 var password = system.args[3];
 
@@ -50,10 +51,24 @@ function login() {
         document.forms[0].submit();
       }, username, password);
 
-      setTimeout(function(){
-        openConnectionPage('followers');
-        // openTweetsPage();
-      },5000);
+      var seq = window.setInterval(function(){
+
+        if(index == userhandle.length && completed == userhandle.length){
+          clearInterval(seq);
+          console.log("All users completed...");
+          phantom.exit();
+          return;
+        }
+
+        if(index == completed) {
+          window.setTimeout(function(){
+            openConnectionPage(userhandle[index].trim(), 'followers');
+            index++;
+          }, 6000);
+        } else {
+          console.log("Waiting for current task to be done for " + userhandle[index-1] + " ...");
+        }
+      }, 8000);
     }
   });
 }
@@ -79,7 +94,7 @@ function isPageLoaded(selector){
 * file based on the passed fileMode 
 */
 
-function calculateTotalAndStoreHtml(fileMode, connectionType){
+function calculateTotalAndStoreHtml(user, fileMode, connectionType){
   
   var contentSelector = "";
   var contentLengthSelector = "";
@@ -108,7 +123,7 @@ function calculateTotalAndStoreHtml(fileMode, connectionType){
     totalTweets+=totalItems;
   }
 
-  fs.write(userhandle+'_'+connectionType+'.html', connectionHtml, fileMode);
+  fs.write(user+'_'+connectionType+'.html', connectionHtml, fileMode);
 }
 
 /* 
@@ -127,10 +142,10 @@ function executeClickOn(selector){
 /*
 * Open followers/following page, follow all the pages and load all connected users.
 */
-function openConnectionPage(connectionType) {
+function openConnectionPage(user, connectionType) {
   console.log("==> Opening "+connectionType+" page...");
   var pageNum = 1;
-  page.open('https://mobile.twitter.com/'+userhandle+'/'+connectionType, function (status) {
+  page.open('https://mobile.twitter.com/'+user+'/'+connectionType, function (status) {
     console.log("==> "+connectionType+" status =>"+status);
     if (isConnectionSuccess(status)) {
       console.log("==> page = "+ pageNum);
@@ -144,7 +159,7 @@ function openConnectionPage(connectionType) {
 
         if(totalCount == 0) {
           window.setTimeout(function(){
-            calculateTotalAndStoreHtml('w',connectionType);
+            calculateTotalAndStoreHtml(user,'w',connectionType);
           }, 10);
         }
 
@@ -163,7 +178,7 @@ function openConnectionPage(connectionType) {
             executeClickOn();
 
             window.setTimeout(function(){
-              calculateTotalAndStoreHtml('a',connectionType);
+              calculateTotalAndStoreHtml(user,'a',connectionType);
             }, 500);
           } else { // Found
             console.log("==> Completing "+connectionType+"...")
@@ -173,11 +188,11 @@ function openConnectionPage(connectionType) {
             
             if(connectionType == "followers") {
               setTimeout(function(){
-                openConnectionPage('following');
+                openConnectionPage(user, 'following');
               },5000);  
             } else if(connectionType == "following") {
               setTimeout(function(){
-                openTweetsPage();
+                openTweetsPage(user);
               },5000);  
             } else {
               phantom.exit();  
@@ -192,11 +207,11 @@ function openConnectionPage(connectionType) {
 /* 
 * Open tweets page, follow all pages until the last page and store the full HTML page.
 */
-function openTweetsPage() {
+function openTweetsPage(user) {
   var connectionType = "tweets";
   console.log("==> Open user's tweets page...");
   var pageNum = 1;
-  page.open('https://mobile.twitter.com/'+userhandle+"/tweets", function(status){
+  page.open('https://mobile.twitter.com/'+user+"/tweets", function(status){
     console.log("Opening tweets page...")
     console.log("Tweets status -> " + status);
     if (isConnectionSuccess(status)) {
@@ -210,7 +225,7 @@ function openTweetsPage() {
         if(totalTweets == 0) {
           console.log("Total tweets = 0, first time writing to file...");
           window.setTimeout(function(){
-            calculateTotalAndStoreHtml('w',connectionType);
+            calculateTotalAndStoreHtml(user,'w',connectionType);
           }, 10);
         }
 
@@ -225,14 +240,15 @@ function openTweetsPage() {
             console.log("==> Next page = " + pageNum);
             executeClickOn();
             window.setTimeout(function(){
-              calculateTotalAndStoreHtml('a',connectionType);
+              calculateTotalAndStoreHtml(user,'a',connectionType);
             }, 500);
           } else { // Found
             isLoaded = false;
             console.log("==> Completing "+connectionType+"...")
             console.log("==> Total "+connectionType+" = "+ totalTweets);
+            completed++;
             clearInterval(b);
-            phantom.exit(); 
+            // phantom.exit(); 
           }
         }, 100);
 
