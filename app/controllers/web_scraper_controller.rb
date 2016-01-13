@@ -156,8 +156,8 @@ class WebScraperController < ApplicationController
 
   def vine_scraper
     params[:user_names].split(',').each do |user|
-      agent = Mechanize.new
-      page = agent.get(" https://vine.co/api/users/profiles/vanity/#{user}")
+      mechanize = Mechanize.new
+      page = mechanize.get(" https://vine.co/api/users/profiles/vanity/#{user}")
 
       body = page.body
       d = JSON.parse(body)
@@ -172,10 +172,73 @@ class WebScraperController < ApplicationController
       loops = d['data']['loopCount']
 
 
-      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}.csv", 'a+') do |csv|
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_vine.csv", 'a+') do |csv|
         csv << ['username','userid','description','followers','following','posts','likes','loops']
         csv << [username,userid,description,followers,following,posts,likes,loops]
+        csv << [""]
+        csv << [""]
+        csv << [""]
       end
+
+      description = []
+      likes = []
+      comments = []
+      reposts = []
+      loops = []
+      u = ""
+
+      page_no = 2
+      anchor = 0
+      
+
+      url = "https://vine.co/api/timelines/users/#{userid}"
+      page_posts = mechanize.get(url);
+      body = page_posts.body
+      parsed_body = JSON.parse(body)
+      total_posts_count = parsed_body['data']['count']
+      total_posts_count = (total_posts_count / 10) + 1
+
+      1.upto total_posts_count do |i|
+
+        url_page = "https://vine.co/api/timelines/users/#{userid}?page=#{page_no}&anchor=#{anchor}&size=10"
+
+        if i == 1
+          u = url
+        else
+          u = url_page
+          page_no = page_no + 1
+        end
+
+        page = mechanize.get(u);
+
+        body = page.body
+        parsed_body = JSON.parse(body)
+        a = parsed_body['data']['records']
+
+        a.each do |values|
+      
+          description << values['description']
+          likes << values['likes']['count']
+          comments << values['comments']['count']
+          reposts << values['reposts']['count']
+          loops << values['loops']['count']
+        end
+        anchor = parsed_body['data']['anchor']
+      end
+        
+        list = description.zip(likes).zip(comments).zip(reposts).zip(loops).flatten
+        new_list = list.each_slice(5).to_a
+        puts "#{new_list}"
+
+        CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_vine.csv", 'a+') do |csv|
+          
+          csv << ["description","likes","comments","reposts","loops"]
+
+          new_list.each do |v|
+
+            csv << v 
+          end
+        end
     end
   end
   def scrap_db_fan_page
