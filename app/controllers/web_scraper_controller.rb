@@ -8,7 +8,7 @@ require 'zip'
 # Phantomjs.path
 
 class WebScraperController < ApplicationController
-  after_action :delete_zip_file, only: [:scraped_data, :fb_scrapped_file]
+  after_action :delete_zip_file, only: [:scraped_data, :scrapped_file]
   before_action :authentication, only: :new
 
   def new
@@ -29,11 +29,12 @@ class WebScraperController < ApplicationController
     respond_to do |format|
       # format.csv { send_data csv_data_for_home_page  }
       format.html
-      format.zip { send_data File.read("#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data.zip")}
+      format.zip { send_data File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.zip")}
     end
   end
 
   def scrap_from_twitter
+    session[:file] = 'scrapped_data.zip'
     scrap
     puts "start fetching followers and following"
     session[:user_name_list] = params[:user_name_list]
@@ -54,10 +55,11 @@ class WebScraperController < ApplicationController
     end
   end
   
-  def fb_scrapped_file
+  def scrapped_file
     respond_to do|format|
       format.html
-      format.csv {send_data File.read("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")}
+      format.csv {send_file "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}"}
+      format.zip {send_file "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}"}
     end
   end
 
@@ -76,104 +78,112 @@ class WebScraperController < ApplicationController
   end
 
   def youtube_scraper
+    session[:file] = 'youtube_date.csv'
     Thread.new do
       params[:user_names].split(',').each_with_index do |user,index|
         yt_response = ''
         Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/youtube_fetcher.js", user.try(:strip)){ |line| puts yt_response = line }
         puts "#{yt_response}"
         yt_response = JSON.parse(yt_response)
-        CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}.csv", "a+") do |csv| 
-          csv << yt_response.keys if index == 0
-          csv << yt_response.values
+        CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "a+") do |csv| 
+          csv << ['User', yt_response.keys].flatten if index == 0
+          csv << [user.try(:strip), yt_response.values].flatten
         end
       end
+      File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
     end
+    redirect_to waiting_path
   end
 
   def instagram_scraper
-    params[:user_names].split(',').each_with_index do |user,index|
-      ig_response = ''
-      Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/instagram_fetcher.js", user.try(:strip)){ |line| puts ig_response = line }
-      ig_response = JSON.parse(ig_response)
-      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}.csv", "a+") do |csv| 
-        csv << ig_response.keys if index == 0
-        csv << ig_response.values
+    session[:file] = 'instagram_data.csv'
+    Thread.new do
+      params[:user_names].split(',').each_with_index do |user,index|
+        ig_response = ''
+        Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/instagram_fetcher.js", user.try(:strip)){ |line| puts ig_response = line }
+        ig_response = JSON.parse(ig_response)
+        CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "a+") do |csv| 
+          csv << ['User', ig_response.keys].flatten if index == 0
+          csv << [user.try(:strip), ig_response.values].flatten
+        end
       end
+      File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
     end
+    redirect_to waiting_path
   end
 
   def vine_scraper
-    params[:user_names].split(',').each do |user|
-      mechanize = Mechanize.new
-      page = mechanize.get(" https://vine.co/api/users/profiles/vanity/#{user}")
-
-      body = page.body
-      d = JSON.parse(body)
-
-      username = d['data']['username']
-      userid = d['data']['userId']
-      description = d['data']['description']
-      followers = d['data']['followerCount']
-      following = d['data']['followingCount']
-      posts = d['data']['postCount']
-      likes = d['data']['likeCount']
-      loops = d['data']['loopCount']
-
-
-      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_vine.csv", 'a+') do |csv|
-        csv << ['username','userid','description','followers','following','posts','likes','loops']
-        csv << [username,userid,description,followers,following,posts,likes,loops]
-        csv << [""]
-        csv << [""]
-        csv << [""]
-      end
-
-      description = []
-      likes = []
-      comments = []
-      reposts = []
-      loops = []
-      u = ""
-
-      page_no = 2
-      anchor = 0
-      
-
-      url = "https://vine.co/api/timelines/users/#{userid}"
-      page_posts = mechanize.get(url);
-      body = page_posts.body
-      parsed_body = JSON.parse(body)
-      total_posts_count = parsed_body['data']['count']
-      total_posts_count = (total_posts_count / 10) + 1
-
-      1.upto total_posts_count do |i|
-
-        url_page = "https://vine.co/api/timelines/users/#{userid}?page=#{page_no}&anchor=#{anchor}&size=10"
-
-        if i == 1
-          u = url
-        else
-          u = url_page
-          page_no = page_no + 1
-        end
-
-        page = mechanize.get(u);
+    session[:file] = 'vine_data.zip'
+    Thread.new do
+      params[:user_names].split(',').each do |user|
+        mechanize = Mechanize.new
+        page = mechanize.get(" https://vine.co/api/users/profiles/vanity/#{user}")
 
         body = page.body
-        parsed_body = JSON.parse(body)
-        a = parsed_body['data']['records']
+        d = JSON.parse(body)
 
-        a.each do |values|
-      
-          description << values['description']
-          likes << values['likes']['count']
-          comments << values['comments']['count']
-          reposts << values['reposts']['count']
-          loops << values['loops']['count']
+        username = d['data']['username']
+        userid = d['data']['userId']
+        description = d['data']['description']
+        followers = d['data']['followerCount']
+        following = d['data']['followingCount']
+        posts = d['data']['postCount']
+        likes = d['data']['likeCount']
+        loops = d['data']['loopCount']
+
+        CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_vine.csv", 'a+') do |csv|
+          csv << ['username','userid','description','followers','following','posts','likes','loops']
+          csv << [username,userid,description,followers,following,posts,likes,loops]
+          csv << [""]
+          csv << [""]
+          csv << [""]
         end
-        anchor = parsed_body['data']['anchor']
-      end
+
+        description = []
+        likes = []
+        comments = []
+        reposts = []
+        loops = []
+        u = ""
+
+        page_no = 2
+        anchor = 0
         
+        url = "https://vine.co/api/timelines/users/#{userid}"
+        page_posts = mechanize.get(url);
+        body = page_posts.body
+        parsed_body = JSON.parse(body)
+        total_posts_count = parsed_body['data']['count']
+        total_posts_count = (total_posts_count / 10) + 1
+
+        1.upto total_posts_count do |i|
+
+          url_page = "https://vine.co/api/timelines/users/#{userid}?page=#{page_no}&anchor=#{anchor}&size=10"
+
+          if i == 1
+            u = url
+          else
+            u = url_page
+            page_no = page_no + 1
+          end
+
+          page = mechanize.get(u);
+
+          body = page.body
+          parsed_body = JSON.parse(body)
+          a = parsed_body['data']['records']
+
+          a.each do |values|
+        
+            description << values['description']
+            likes << values['likes']['count']
+            comments << values['comments']['count']
+            reposts << values['reposts']['count']
+            loops << values['loops']['count']
+          end
+          anchor = parsed_body['data']['anchor']
+        end
+          
         list = description.zip(likes).zip(comments).zip(reposts).zip(loops).flatten
         new_list = list.each_slice(5).to_a
         puts "#{new_list}"
@@ -187,7 +197,11 @@ class WebScraperController < ApplicationController
             csv << v 
           end
         end
+      end
+      create_zip_file_and_send_email
+      # zipfile
     end
+    redirect_to waiting_path
   end
 
   def scrap_db_fan_page
@@ -339,7 +353,7 @@ class WebScraperController < ApplicationController
     sleep 15
     folder = "#{File.expand_path(File.dirname(__FILE__))}/../.."
     input_filenames = Dir["#{File.expand_path(File.dirname(__FILE__))}/../../*.csv"]
-    zipfile_name = "#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data.zip"
+    zipfile_name = "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}"
     puts folder, zipfile_name, input_filenames
     Zip::File.open(zipfile_name, Zip::File::CREATE) do |zipfile|
       input_filenames.each do |filename|
@@ -348,7 +362,7 @@ class WebScraperController < ApplicationController
         # - The original file, including the path to find it
         zipfile.add(filename.split('/').last, folder + '/' + filename.split('/').last)
       end
-      zipfile.get_output_stream("myFile") { |os| os.write "myFile contains just this" }
+      # zipfile.get_output_stream("myFile") { |os| os.write "myFile contains just this" }
     end
     # ZipFileGenerator.new(input_dir, output_file).write
     Rails.logger.debug '=====> Compressed'

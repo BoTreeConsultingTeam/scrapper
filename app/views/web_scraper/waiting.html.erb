@@ -4,24 +4,27 @@
   Something went wrong, please try again.
 <% elsif session[:message].present? %>
   Your download is started,<br/>
-  <script type="text/javascript">
-    $(document).ready(function(){
-      setTimeout(function(){
-        window.location.replace('/fb_scrapped_file.csv');
-      }, 300);
-    });
-  </script>
-  
+  <%- if session[:file].split('.').last == 'csv'%>
+    <script type="text/javascript">
+      $(document).ready(function(){
+        setTimeout(function(){
+          window.location.replace('/scrapped_file.csv');
+        }, 300);
+      });
+    </script>
+  <% elsif session[:file].split('.').last == 'zip' %>
+    <script type="text/javascript">
+      $(document).ready(function(){
+        setTimeout(function(){
+          window.location.replace('/scrapped_file.zip');
+        }, 300);
+      });
+    </script>
+  <% end %>
 <% else %>
   <script type="text/javascript">
     setTimeout(function(){
-      $.ajax({
-        method: 'GET',
-        url: '/send_list_of_followers',
-        success: function(){
-          location.reload();
-        }
-      });
+      location.reload();
       console.log('hello');
     }, 30000);
   </script>

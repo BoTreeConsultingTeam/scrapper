@@ -11,7 +11,7 @@ Rails.application.routes.draw do
   post '/scrap_from_fb', to: 'web_scraper#scrap_from_fb'
   post '/scrap_db_fan_page', to: 'web_scraper#scrap_db_fan_page'
   get '/waiting', to: 'web_scraper#waiting'
-  get '/fb_scrapped_file', to: 'web_scraper#fb_scrapped_file'
+  get '/scrapped_file', to: 'web_scraper#scrapped_file'
   post '/scrap_youtube', to: 'web_scraper#youtube_scraper'
   post '/scrap_instagram', to: 'web_scraper#instagram_scraper'
    post '/scrap_vine', to: 'web_scraper#vine_scraper'

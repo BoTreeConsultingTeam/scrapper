@@ -21,7 +21,7 @@ function youtubeScrap(){
 		total_subscribers = getNumberFromString(subscribers);
 
     console.log('Total subscribers are : ' + total_subscribers);
-    fs.write( username+'.txt', total_subscribers, 'a');
+    // fs.write( username+'.txt', total_subscribers, 'a');
 
     var views = page.evaluate(function () {
         return document.querySelectorAll('span.about-stat b')[1].innerHTML;
@@ -29,7 +29,7 @@ function youtubeScrap(){
     total_views = getNumberFromString(views);
 
     console.log('Total views are : ' + total_views);
-    fs.write( username+'.txt', total_views, 'a');
+    // fs.write( username+'.txt', total_views, 'a');
  
     nextpage();
 
@@ -107,7 +107,7 @@ function calculateTotalvideos(){
             return sum;
 
             });
-		    fs.write( username+'.txt', total_videos , 'a');
+		    // fs.write( username+'.txt', total_videos , 'a');
 				console.log(total_videos);
 
 }
@@ -121,7 +121,7 @@ function calculateTotalPlaylists(){
 			});
 
 			console.log('Total playlists are : ' + playlists);
-	    fs.write( username+'.txt', playlists, 'a');
+	    // fs.write( username+'.txt', playlists, 'a');
 			
 }
 
@@ -145,7 +145,7 @@ function StoreToHtmlFile(){
 
 		});
 
-    fs.write( username+'_content.html', content, 'w');
+    // fs.write( username+'_content.html', content, 'w');
     console.log("stored in html file......");
 
 }
