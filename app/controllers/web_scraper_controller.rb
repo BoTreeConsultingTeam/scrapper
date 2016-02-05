@@ -132,6 +132,18 @@ class WebScraperController < ApplicationController
         end
       end
 
+      posted_at = []
+      code.each do |c|
+        post_page = agent.get("https://www.instagram.com/p/#{c}/")
+        element = agent.page.search("script")[6]
+        text = element.content
+        a1 = text.gsub('window._sharedData = ','').gsub(';','')
+        b1 = JSON(a1) 
+        date = b1['entry_data']['PostPage'][0]['media']['date']
+        post_date = Date.strptime("#{date}", '%s')
+        posted_at << post_date
+      end
+
       video_url = []
       video_link.each do |url|
         video_page = agent.get("https://www.instagram.com/p/#{url}/")
@@ -140,8 +152,8 @@ class WebScraperController < ApplicationController
       end
 
       user_name = b['entry_data']['ProfilePage'][0]['user']['username']
-      data = caption.zip(comments_count).zip(likes_count).zip(post_url).zip(is_video).zip(post_id).flatten
-      new_data = data.each_slice(6).to_a
+      data = caption.zip(comments_count).zip(likes_count).zip(post_url).zip(is_video).zip(post_id).zip(posted_at).flatten
+      new_data = data.each_slice(7).to_a
 
       latest_data = []
       new_data.each do |n|
@@ -154,7 +166,7 @@ class WebScraperController < ApplicationController
       final = []
       index = 0
       latest_data.each do |ld|
-        if ld.length == 5
+        if ld.length == 6
           ld.insert(3,video_url[index])
           index += 1
         end
@@ -165,7 +177,7 @@ class WebScraperController < ApplicationController
       CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
 
             
-        csv << ["description","comments","likes","url","is_video","post_id","username"]
+        csv << ["description","comments","likes","url","is_video","post_id","posted_at","username"]
 
         final.each do |d|
 
