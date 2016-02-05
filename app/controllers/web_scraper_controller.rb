@@ -83,7 +83,6 @@ class WebScraperController < ApplicationController
       params[:user_names].split(',').each_with_index do |user,index|
         yt_response = ''
         Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/youtube_fetcher.js", user.try(:strip)){ |line| puts yt_response = line }
-        puts "#{yt_response}"
         yt_response = JSON.parse(yt_response)
         CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "a+") do |csv| 
           csv << ['User', yt_response.keys].flatten if index == 0
@@ -97,18 +96,97 @@ class WebScraperController < ApplicationController
 
   def instagram_scraper
     session[:file] = 'instagram_data.csv'
-    Thread.new do
-      params[:user_names].split(',').each_with_index do |user,index|
-        ig_response = ''
-        Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/instagram_fetcher.js", user.try(:strip)){ |line| puts ig_response = line }
-        ig_response = JSON.parse(ig_response)
-        CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "a+") do |csv| 
-          csv << ['User', ig_response.keys].flatten if index == 0
-          csv << [user.try(:strip), ig_response.values].flatten
+    params[:user_names].split(',').each do |user|
+      agent = Mechanize.new
+      page = agent.get("https://www.instagram.com/#{user}/")
+      element = agent.page.search("script")[6]
+      text = element.content
+      a = text.gsub('window._sharedData = ','').gsub(';','')
+      b = JSON(a) 
+      posts = b['entry_data']['ProfilePage'][0]['user']['media']['nodes']
+
+      caption = []
+      comments_count = []
+      likes_count = []
+      post_url = []
+      is_video = []
+      code = []
+      video = []
+      post_id = []
+
+      posts.each do |post|
+        post_id << post['id']
+        caption << post['caption']
+        comments_count << post['comments']['count']
+        likes_count << post['likes']['count']
+        post_url << post['display_src']
+        is_video << post['is_video']
+        code << post['code']
+        video << post['is_video']
+      end
+
+      video_link = []
+        code.zip(video).each do |c,v|
+          if v == true
+            video_link << c
         end
       end
-      File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
+
+      video_url = []
+      video_link.each do |url|
+        video_page = agent.get("https://www.instagram.com/p/#{url}/")
+        v_link = video_page.at('meta[property="og:video:secure_url"]')[:content]
+        video_url << v_link
+      end
+
+      user_name = b['entry_data']['ProfilePage'][0]['user']['username']
+      data = caption.zip(comments_count).zip(likes_count).zip(post_url).zip(is_video).zip(post_id).flatten
+      new_data = data.each_slice(6).to_a
+
+      latest_data = []
+      new_data.each do |n|
+          if n[4] == true
+           n.delete_at(3)
+          end
+          latest_data << n
+      end
+
+      final = []
+      index = 0
+      latest_data.each do |ld|
+        if ld.length == 5
+          ld.insert(3,video_url[index])
+          index += 1
+        end
+        final << ld
+      end
+
+
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
+
+            
+        csv << ["description","comments","likes","url","is_video","post_id","username"]
+
+        final.each do |d|
+
+          d1 = d << user_name
+          csv << d1
+        end
+      end
     end
+    # Thread.new do
+    #   params[:user_names].split(',').each_with_index do |user,index|
+    #     ig_response = ''
+    #     Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/instagram_fetcher.js", user.try(:strip)){ |line| puts ig_response = line }
+    #     ig_response = JSON.parse(ig_response)
+    #     CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "a+") do |csv| 
+    #       csv << ['User', ig_response.keys].flatten if index == 0
+    #       csv << [user.try(:strip), ig_response.values].flatten
+    #     end
+    #   end
+    #   File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
+    # end
+    File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
     redirect_to waiting_path
   end
 
@@ -186,7 +264,6 @@ class WebScraperController < ApplicationController
           
         list = description.zip(likes).zip(comments).zip(reposts).zip(loops).flatten
         new_list = list.each_slice(5).to_a
-        puts "#{new_list}"
 
         CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{user}_vine.csv", 'a+') do |csv|
           
