@@ -252,61 +252,32 @@ class WebScraperController < ApplicationController
 
       page1 = m.get("https://mobile.twitter.com/#{user}")
 
+      tweets = page1.search('.tweet').to_a
+      tweets_data = []
+      tweets.each do |tweet|
+        tweet_data = []
+        tweet_data << tweet.search('.tweet-text').text.try(:strip) rescue tweet_data << ""
+        tweet_data << tweet.search('.timestamp').text.try(:strip) rescue tweet_data << ""
+        tweet_data << tweet.search('.fullname').text.try(:strip) rescue tweet_data << ""
+        tweet_data << tweet.search('.username').text.try(:strip) rescue tweet_data << ""
 
+        tweet_link = tweet.search('span.metadata a').first['href'] rescue ""
+        tweet_page = m.get "https://mobile.twitter.com#{tweet_link}"
+        tweet_data << tweet_page.search('div.media img').first['src'].gsub(':small','') rescue tweet_data << ""
 
-      t = page1.search('div.tweet-text').to_a
-      tweet = []
-      t.each do |tw|
-        tweet << tw.text.try(:strip)
+        tweets_data << tweet_data
       end
-
-      t1 = page1.search('.timestamp').to_a
-      time = []
-      t1.each do |tt|
-        time << tt.text.try(:strip)
-      end
-
-      name  = page1.search('.fullname').to_a
-      names = []
-      name.each do |n|
-        names << n.text.try(:strip)
-      end
-
-      uname = page1.search('div.username').to_a
-      u_name = []
-      uname.each do |u|
-        u_name << u.text.try(:strip)
-      end
-
-      images = page1.search('span.metadata a').to_a
-
-      url = []
-      images.each do |i|
-        u1 = "https://mobile.twitter.com#{i.values.first}"
-        url << u1
-      end
-
-      tu = []
-      url.each do |u1|
-        tp = m.get "#{u1}"
-        tu << tp.parser.css('div.media img').first.values.first rescue tu << ""
-      end
-
-      user_handle = page1.search('div.username span.screen-name').text.try(:strip)
-
-      data = tweet.zip(names[1..-1]).zip(u_name[1..-1]).zip(time).zip(tu).flatten
-      new_data = data.each_slice(5).to_a
-
+      username = page1.search('div.username span.screen-name').text.try(:strip)
 
       CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
+            
+        csv << ["Tweet-text","Tweet_at","Fullname","Username","media_url","username"]
 
-              
-          csv << ["tweet-text","username","userhandle","time","media_url","user_handle"]
+        tweets_data.each do |d|
 
-          new_data.each do |d|
-            d1 = d << user_handle
-            csv << d1
-          end
+          d1 = d << username
+          csv << d1
+        end
       end
     end
     File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
