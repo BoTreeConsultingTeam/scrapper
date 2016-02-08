@@ -202,6 +202,117 @@ class WebScraperController < ApplicationController
     redirect_to waiting_path
   end
 
+  def pinterest_scraper
+    session[:file] = 'pinterest_data.csv'
+    params[:user_names].split(',').each do |user|
+      m = Mechanize.new
+      page = m.get("https://www.pinterest.com/#{user}/pins/")
+
+      username = page.at('meta[property="og:title"]')[:content].gsub('(','').gsub(')','').split(' ').last
+      
+      pins_data = []
+      page_data = page.search('.pinWrapper').to_a
+      page_data.each do |pin|
+        pin_data = []
+
+          
+          pin_data << pin.search('.pinImageActionButtonWrapper .pinHolder .pinUiImage .pinImg').to_a.first['src'] rescue pin_data ""
+          pin_data << pin.search('.pinNavLink').to_a.first['href'] rescue pin_data << ""
+          pin_data << pin.search('.pinMeta .pinDescription').to_a.first.children.text.try(:strip) rescue pin_data << ""
+          pin_data << pin.search('.richPinMeta .richPinGridTitle').children.text.try(:strip) rescue pin_data << ""
+          pin_data << pin.search('.richPinMeta .richPinGridAttributionTitle').children.text.try(:strip) rescue pin_data << ""
+          pin_data << pin.search('.richPinMeta .richPinMetaLink').to_a.first['href'] rescue pin_data << ""
+
+          pin_url = pin.search('.pinImageActionButtonWrapper .pinHolder a').to_a.first['href']
+          pin_page = m.get("https://www.pinterest.com#{pin_url}")
+          pin_data << pin_page.search('.commentDescriptionTimeAgoWrapper span.commentDescriptionTimeAgo').text rescue pin_data << ""
+
+          pins_data << pin_data
+      end
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
+
+            
+        csv << ["pinImageUrl","pinOriginWebLink","pinDescription","pinRichMetaTitle","pinRichMetaFrom","pinRichMetaUrl","pin_at","username"]
+
+        pins_data.each do |d|
+
+          d1 = d << username
+          csv << d1
+        end
+      end
+    end
+    File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
+    redirect_to waiting_path
+  end
+
+  def twitter_scraper
+    session[:file] = 'twitter_data.csv'
+    params[:user_names].split(',').each do |user|
+      m = Mechanize.new
+
+      page1 = m.get("https://mobile.twitter.com/#{user}")
+
+
+
+      t = page1.search('div.tweet-text').to_a
+      tweet = []
+      t.each do |tw|
+        tweet << tw.text.try(:strip)
+      end
+
+      t1 = page1.search('.timestamp').to_a
+      time = []
+      t1.each do |tt|
+        time << tt.text.try(:strip)
+      end
+
+      name  = page1.search('.fullname').to_a
+      names = []
+      name.each do |n|
+        names << n.text.try(:strip)
+      end
+
+      uname = page1.search('div.username').to_a
+      u_name = []
+      uname.each do |u|
+        u_name << u.text.try(:strip)
+      end
+
+      images = page1.search('span.metadata a').to_a
+
+      url = []
+      images.each do |i|
+        u1 = "https://mobile.twitter.com#{i.values.first}"
+        url << u1
+      end
+
+      tu = []
+      url.each do |u1|
+        tp = m.get "#{u1}"
+        tu << tp.parser.css('div.media img').first.values.first rescue tu << ""
+      end
+
+      user_handle = page1.search('div.username span.screen-name').text.try(:strip)
+
+      data = tweet.zip(names[1..-1]).zip(u_name[1..-1]).zip(time).zip(tu).flatten
+      new_data = data.each_slice(5).to_a
+
+
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
+
+              
+          csv << ["tweet-text","username","userhandle","time","media_url","user_handle"]
+
+          new_data.each do |d|
+            d1 = d << user_handle
+            csv << d1
+          end
+      end
+    end
+    File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
+    redirect_to waiting_path
+  end
+
   def vine_scraper
     session[:file] = 'vine_data.zip'
     Thread.new do

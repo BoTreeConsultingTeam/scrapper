@@ -83,6 +83,36 @@
 </div>
 
 <div class="container">
+  <h3> Pinterest </h3> 
+  <%= form_tag scrap_pinterest_path do %>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12 form-group">
+      <label class="control-label">Please enter pinterest username separated by comma (Maximum 25)</label>
+    </div>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
+      <%= text_area_tag :user_names, '', placeholder: 'enter multiple user separating by coma', cols: 25, rows: 3, class: 'form-control' %><br/>
+    </div><br/>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
+      <%= submit_tag :Extract, class: 'btn btn-primary' %>
+    </div>
+  <% end %>
+</div>
+
+<div class="container">
+  <h3> Twitter Scrap </h3> 
+  <%= form_tag scrap_twitter_path do %>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12 form-group">
+      <label class="control-label">Please enter twitter username separated by comma (Maximum 25)</label>
+    </div>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
+      <%= text_area_tag :user_names, '', placeholder: 'enter multiple user separating by coma', cols: 25, rows: 3, class: 'form-control' %><br/>
+    </div><br/>
+    <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12  form-group">
+      <%= submit_tag :Extract, class: 'btn btn-primary' %>
+    </div>
+  <% end %>
+</div>
+
+<div class="container">
   <h3> Vine </h3> 
   <%= form_tag scrap_vine_path do %>
     <div class="col-lg-offset-2 col-md-offset-2 col-lg-6 col-md-4 col-sm-offset-1 col-sm-10 col-xs-12 form-group">
