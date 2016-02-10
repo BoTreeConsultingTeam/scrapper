@@ -226,13 +226,14 @@ class WebScraperController < ApplicationController
           pin_url = pin.search('.pinImageActionButtonWrapper .pinHolder a').to_a.first['href']
           pin_page = m.get("https://www.pinterest.com#{pin_url}")
           pin_data << pin_page.search('.commentDescriptionTimeAgoWrapper span.commentDescriptionTimeAgo').text rescue pin_data << ""
+          pin_data << pin.search('.pinImageActionButtonWrapper .pinHolder a').to_a.first['href'].split('/').last rescue pin_data << ""
 
           pins_data << pin_data
       end
       CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
 
             
-        csv << ["pinImageUrl","pinOriginWebLink","pinDescription","pinRichMetaTitle","pinRichMetaFrom","pinRichMetaUrl","pin_at","username"]
+        csv << ["pinImageUrl","pinOriginWebLink","pinDescription","pinRichMetaTitle","pinRichMetaFrom","pinRichMetaUrl","pin_at","post_id","username"]
 
         pins_data.each do |d|
 
