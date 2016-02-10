@@ -285,6 +285,44 @@ class WebScraperController < ApplicationController
     redirect_to waiting_path
   end
 
+  def facebook_scraping
+    session[:file] = 'facebook_data.csv'
+    mechanize = Mechanize.new
+    page = mechanize.get('https://m.facebook.com/')
+
+    form = mechanize.page.form_with(:method => 'POST')
+    form.email = "email"
+    form.pass = "password"
+    page = mechanize.submit(form)
+
+    params[:user_names].split(',').each do |user|
+      agent = mechanize.get("https://m.facebook.com/#{user}?v=timeline")
+
+      posts = agent.search('div.ch').to_a
+      posts_data = []
+      posts.each do |post|
+        post_data = []
+        
+        post_data << post.search('div.co span p').text rescue post_data << ""
+        post_data << post.search('div.cp div.bo.bp abbr').text rescue post_data << ""
+        post_url = post.search('div.cv .cw').first['href'] rescue post_data << ""
+        post_page = mechanize.get "https://m.facebook.com#{post_url}" rescue ""
+        post_data << post_page.search('img').to_a[1].attributes['src'].value rescue post_data << ""
+        post_data << post.search('div.cl a').first['href'] rescue post_data << ""
+
+        posts_data << post_data
+      end
+
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/#{user}_facebook.csv", 'a+',{:col_sep => "|"}) do |csv|
+        csv << ["post_content","post_at","post_media_url","post_web_url"]
+
+        posts_data.each do|p|
+          csv << p
+        end
+      end
+    end
+  end
+
   def vine_scraper
     session[:file] = 'vine_data.zip'
     Thread.new do
