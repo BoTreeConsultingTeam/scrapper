@@ -249,37 +249,40 @@ class WebScraperController < ApplicationController
   def twitter_scraper
     session[:file] = 'twitter_data.csv'
     params[:user_names].split(',').each do |user|
-      m = Mechanize.new
+      twitter_data_response = ''
+      Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/twitter_data.js", user.try(:strip)){ |line| puts twitter_data_response = line }
+      JSON.parse(twitter_data_response)
+      # m = Mechanize.new
 
-      page1 = m.get("https://mobile.twitter.com/#{user}")
+      # page1 = m.get("https://mobile.twitter.com/#{user}")
 
-      tweets = page1.search('.tweet').to_a
-      tweets_data = []
-      tweets.each do |tweet|
-        tweet_data = []
-        tweet_data << tweet.search('.tweet-text').text.try(:strip) rescue tweet_data << ""
-        tweet_data << tweet.search('.timestamp').text.try(:strip) rescue tweet_data << ""
-        tweet_data << tweet.search('.fullname').text.try(:strip) rescue tweet_data << ""
-        tweet_data << tweet.search('.username').text.try(:strip) rescue tweet_data << ""
+      # tweets = page1.search('.tweet').to_a
+      # tweets_data = []
+      # tweets.each do |tweet|
+      #   tweet_data = []
+      #   tweet_data << tweet.search('.tweet-text').text.try(:strip) rescue tweet_data << ""
+      #   tweet_data << tweet.search('.timestamp').text.try(:strip) rescue tweet_data << ""
+      #   tweet_data << tweet.search('.fullname').text.try(:strip) rescue tweet_data << ""
+      #   tweet_data << tweet.search('.username').text.try(:strip) rescue tweet_data << ""
 
-        tweet_link = tweet.search('span.metadata a').first['href'] rescue ""
-        tweet_page = m.get "https://mobile.twitter.com#{tweet_link}"
-        tweet_data << tweet_page.search('div.media img').first['src'].gsub(':small','') rescue tweet_data << ""
+      #   tweet_link = tweet.search('span.metadata a').first['href'] rescue ""
+      #   tweet_page = m.get "https://mobile.twitter.com#{tweet_link}"
+      #   tweet_data << tweet_page.search('div.media img').first['src'].gsub(':small','') rescue tweet_data << ""
 
-        tweets_data << tweet_data
-      end
-      username = page1.search('div.username span.screen-name').text.try(:strip)
+      #   tweets_data << tweet_data
+      # end
+      # username = page1.search('div.username span.screen-name').text.try(:strip)
 
-      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
+      # CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
             
-        csv << ["Tweet-text","Tweet_at","Fullname","Username","media_url","username"]
+      #   csv << ["Tweet-text","Tweet_at","Fullname","Username","media_url","username"]
 
-        tweets_data.each do |d|
+      #   tweets_data.each do |d|
 
-          d1 = d << username
-          csv << d1
-        end
-      end
+      #     d1 = d << username
+      #     csv << d1
+      #   end
+      # end
     end
     File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
     redirect_to waiting_path
