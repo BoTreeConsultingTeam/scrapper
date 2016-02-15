@@ -288,7 +288,7 @@ class WebScraperController < ApplicationController
     redirect_to waiting_path
   end
 
-  def facebook_scraping
+  def facebook_scraper
     session[:file] = 'facebook_data.csv'
     mechanize = Mechanize.new
     page = mechanize.get('https://m.facebook.com/')
@@ -325,6 +325,36 @@ class WebScraperController < ApplicationController
 
         posts_data.each do|p|
           csv << p
+        end
+      end
+    end
+    File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
+    redirect_to waiting_path
+  end
+
+  def vimeo_scraper
+    session[:file] = 'vimeo_data.csv'
+    params[:user_names].split(',').each do |user|
+      m = Mechanize.new
+      page = m.get "https://vimeo.com/#{user}/videos"
+      videos = page.search('#browse_content ol.js-browse_list li').to_a
+      videos_data = []
+      videos.each do |video|
+        video_data = []
+        video_data << video.search('.data p').text.split("\n")[1].try(:strip)
+        video_data << video.search('.data p').text.split("\n")[2].try(:strip)
+        video_data << video.search('img').to_a.first['srcset'].gsub(' 2x', '')
+        video_link = video.search('a').to_a.first['href']
+        video_page = m.get "https://vimeo.com#{video_link}"
+        video_data << video_page.at('meta[property="og:video:url"]')[:content]
+        video_data << video.search('a').to_a.first['href'].split("/").last
+        video_data << page.title.split("’s").first
+        videos_data << video_data
+      end
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
+        csv << ["title","post_at","display_url","Video_url","post_id","username"]
+        videos_data.each do|v|
+          csv << v
         end
       end
     end
