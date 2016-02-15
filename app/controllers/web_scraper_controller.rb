@@ -300,30 +300,36 @@ class WebScraperController < ApplicationController
 
     params[:user_names].split(',').each do |user|
       agent = mechanize.get("https://m.facebook.com/#{user}?v=timeline")
-
-      posts = agent.search('div.ch').to_a
+      posts = agent.search('div#structured_composer_async_container').children.children.children.to_a.first.search('div[id*="u_"]').to_a
       posts_data = []
       posts.each do |post|
         post_data = []
-        
-        post_data << post.search('div.co span p').text rescue post_data << ""
-        post_data << post.search('div.cp div.bo.bp abbr').text rescue post_data << ""
-        post_url = post.search('div.cv .cw').first['href'] rescue post_data << ""
-        post_page = mechanize.get "https://m.facebook.com#{post_url}" rescue ""
-        post_data << post_page.search('img').to_a[1].attributes['src'].value rescue post_data << ""
-        post_data << post.search('div.cl a').first['href'] rescue post_data << ""
-
+        post_data << post.search('span p').text rescue post_data << ""
+        post_data << post.search("div/abbr").text rescue post_data << ""
+        # post_url = post.search("div/a").to_a.first['href'].include?('photo') ? post.search("div/a").to_a.first['href'] : ""
+        # post_page = mechanize.get "https://m.facebook.com#{post_url}" rescue ""
+        # post_data << post_page.search('img').to_a[1].attributes['src'].value rescue post_data << ""
+        post_data << post.search("div/a img").to_a.first['src'] rescue post_data << ""
+        video_link = post.search("div/a").to_a.first['href'].include?('video') ? "https://m.facebook.com#{post.search("div/a").to_a.first['href']}" : "" rescue  ""
+        post_data  << video_link rescue post_data << ""
+        web_url  = post.search("div/a").to_a.first['href'].include?('lm.facebook.com/l.php?u') ? post.search("div/a").to_a.first['href'] : "" rescue  ""
+        post_data << web_url rescue post_data << ""
+        post_id_data = post.search('a').map{|x| x[:href]}[-2]
+        post_id = URI.decode_www_form(post_id_data).first.last
+        post_data << post_id
         posts_data << post_data
       end
 
-      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/#{user}_facebook.csv", 'a+',{:col_sep => "|"}) do |csv|
-        csv << ["post_content","post_at","post_media_url","post_web_url"]
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
+        csv << ["post_content","post_at","post_media_url","post_video_url","post_web_url","post_id"]
 
         posts_data.each do|p|
           csv << p
         end
       end
     end
+    File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
+    redirect_to waiting_path
   end
 
   def vine_scraper
