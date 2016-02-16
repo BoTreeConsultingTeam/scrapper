@@ -7,7 +7,7 @@ console.log(url);
 var userTweets = [];
 var videoUrls = [];
 
-page.settings.userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.71 Safari/537.36';
+// page.settings.userAgent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.71 Safari/537.36';
 
 page.onConsoleMessage = function(msg, lineNum, sourceId) {
   console.log('DEBUG: ' + msg);
@@ -36,19 +36,29 @@ page.open(url, function (status) {
         var tweet_id = tweets[i].attributes["data-tweet-id"].textContent;
         var tweet_media = (tweets[i].querySelectorAll(".AdaptiveMedia-singlePhoto img").length > 0) ? tweets[i].querySelector(".AdaptiveMedia-singlePhoto img").attributes['src'].textContent : "";
         var videoPageUrl = "";
+        var videoUrl = "";
         if(tweets[i].querySelectorAll(".AdaptiveMedia-video").length > 0){
-          videoPageUrl = "https://www.twitter.com" + tweets[i].querySelector(".AdaptiveMedia-video .js-macaw-cards-iframe-container").attributes['data-src'].textContent;
-          tweetsJsonArr.push({
-            tweet_content: tweet_content,
-            tweet_at: tweet_at,
-            user_name: user_name,
-            user_handle: user_handle,
-            tweet_id: tweet_id,
-            tweet_media: tweet_media,
-            isVideoPresent: (videoPageUrl !== ''),
-            videoPageUrl: videoPageUrl,
-          });
+          if (tweets[i].querySelectorAll(".AdaptiveMedia-videoContainer video.animated-gif").length > 0) {
+            videoUrl = tweets[1].querySelectorAll(".AdaptiveMedia-videoContainer video.animated-gif source")[0].getAttribute('video-src')
+          }
+          else {
+            console.log('----------->in first if condition');
+            videoPageUrl = "https://www.twitter.com" + tweets[i].querySelector(".AdaptiveMedia-video .js-macaw-cards-iframe-container").attributes['data-src'].textContent;
+          }
+          // console.log('----------->in first if condition');
+          // videoPageUrl = "https://www.twitter.com" + tweets[i].querySelector(".AdaptiveMedia-video .js-macaw-cards-iframe-container").attributes['data-src'].textContent;
         }
+        tweetsJsonArr.push({
+          tweet_content: tweet_content,
+          tweet_at: tweet_at,
+          user_name: user_name,
+          user_handle: user_handle,
+          tweet_id: tweet_id,
+          tweet_media: tweet_media,
+          isVideoPresent: (videoPageUrl !== ''),
+          videoPageUrl: videoPageUrl,
+          videoUrl: videoUrl,
+        });
       }
     }
     return tweetsJsonArr;
@@ -69,9 +79,9 @@ function fetchVideoURLs(){
       console.log(JSON.stringify({video_data: JSON.stringify(videoUrls),twitter_data: JSON.stringify(userTweets)}));
       phantom.exit();
     }
-    if(userTweets[i].isVideoPresent == true) {
+    if(userTweets[i].isVideoPresent == true && (userTweets[i].videoUrl == null || userTweets[i].videoUrl == "")) {
       page.open(userTweets[i].videoPageUrl, function(status){
-        var videoUrl = page.evaluate(function(){
+        videoUrl = page.evaluate(function(){
           if(document.querySelectorAll(".AmplifyContainer.FlexEmbed").length > 0){
             var a = document.querySelectorAll(".AmplifyContainer.FlexEmbed")[0].attributes["data-player-config"].textContent;
             // console.log(" =====> ");

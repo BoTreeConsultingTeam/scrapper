@@ -205,8 +205,8 @@ class WebScraperController < ApplicationController
   def pinterest_scraper
     session[:file] = 'pinterest_data.csv'
     params[:user_names].split(',').each do |user|
-      m = Mechanize.new
-      page = m.get("https://www.pinterest.com/#{user}/pins/")
+      agent = Mechanize.new
+      page = agent.get("https://www.pinterest.com/#{user}/pins/")
       element = agent.page.search("script")[5]
       text = element.content
       username = page.at('meta[property="og:title"]')[:content].gsub('(','').gsub(')','').split(' ').last
