@@ -207,33 +207,27 @@ class WebScraperController < ApplicationController
     params[:user_names].split(',').each do |user|
       m = Mechanize.new
       page = m.get("https://www.pinterest.com/#{user}/pins/")
-
+      element = agent.page.search("script")[5]
+      text = element.content
       username = page.at('meta[property="og:title"]')[:content].gsub('(','').gsub(')','').split(' ').last
-      
+      b = JSON.parse(text.gsub('P.startArgs =','').gsub(';','').gsub("\n","").gsub(/P.staticFileUrls(.*\s+.*)*/,''))
+      pins = b['resourceDataCache'][1]['data']
       pins_data = []
-      page_data = page.search('.pinWrapper').to_a
-      page_data.each do |pin|
+      pins.each do |pin|
         pin_data = []
-
-          
-          pin_data << pin.search('.pinImageActionButtonWrapper .pinHolder .pinUiImage .pinImg').to_a.first['src'] rescue pin_data ""
-          pin_data << pin.search('.pinNavLink').to_a.first['href'] rescue pin_data << ""
-          pin_data << pin.search('.pinMeta .pinDescription').to_a.first.children.text.try(:strip) rescue pin_data << ""
-          pin_data << pin.search('.richPinMeta .richPinGridTitle').children.text.try(:strip) rescue pin_data << ""
-          pin_data << pin.search('.richPinMeta .richPinGridAttributionTitle').children.text.try(:strip) rescue pin_data << ""
-          pin_data << pin.search('.richPinMeta .richPinMetaLink').to_a.first['href'] rescue pin_data << ""
-
-          pin_url = pin.search('.pinImageActionButtonWrapper .pinHolder a').to_a.first['href']
-          pin_page = m.get("https://www.pinterest.com#{pin_url}")
-          pin_data << pin_page.search('.commentDescriptionTimeAgoWrapper span.commentDescriptionTimeAgo').text rescue pin_data << ""
-          pin_data << pin.search('.pinImageActionButtonWrapper .pinHolder a').to_a.first['href'].split('/').last rescue pin_data << ""
+          pin_data << pin['description'] rescue pin_data << ""
+          pin_data << pin['images']['orig']['url'] rescue pin_data << ""
+          pin_data << pin['created_at'].to_date rescue pin_data << ""
+          pin_data << pin['link'] rescue pin_data << ""
+          pin_data << pin['rich_summary']['display_name'] rescue pin_data << ""
+          pin_data << pin['rich_summary']['site_name'] rescue pin_data << ""
+          pin_data << pin['id'] rescue pin_data << ""
 
           pins_data << pin_data
       end
       CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
 
-            
-        csv << ["pinImageUrl","pinOriginWebLink","pinDescription","pinRichMetaTitle","pinRichMetaFrom","pinRichMetaUrl","pin_at","post_id","username"]
+        csv << ["pinDescription","pinImageUrl","pinTime","pinOriginWebLink","pinRichMetaTitle","pinRichMetaFrom","pin_id","username"]
 
         pins_data.each do |d|
 
