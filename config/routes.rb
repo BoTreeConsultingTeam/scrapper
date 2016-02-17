@@ -14,6 +14,7 @@ Rails.application.routes.draw do
   get '/scrapped_file', to: 'web_scraper#scrapped_file'
   post '/scrap_youtube', to: 'web_scraper#youtube_scraper'
   post '/scrap_instagram', to: 'web_scraper#instagram_scraper'
+  post '/scrap_instagram_hashtag', to: 'web_scraper#instagram_hashtag_scraper'
   post '/scrap_facebook', to: 'web_scraper#facebook_scraper'
   post '/scrap_vimeo', to: 'web_scraper#vimeo_scraper'
   post '/scrap_you_tube', to: 'web_scraper#youtube_scrap'

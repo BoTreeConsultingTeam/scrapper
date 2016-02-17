@@ -202,6 +202,56 @@ class WebScraperController < ApplicationController
     redirect_to waiting_path
   end
 
+  def instagram_hashtag_scraper
+    session[:file] = 'instagram_hashtag_data.csv'
+    params[:tags].split(',').each do |tag|
+      agent = Mechanize.new
+      page = agent.get("https://www.instagram.com/explore/tags/#{tag}/")
+      hashtag =  page.title.split(" •").first.gsub("\n",'')
+      element = agent.page.search("script")[6]
+      text = element.content
+      a = text.gsub('window._sharedData = ','').gsub(';','')
+      b = JSON(a)
+
+      posts = b['entry_data']['TagPage'][0]['tag']['media']['nodes'] 
+      posts_data = []
+
+      posts.each do |post|
+        post_data = []
+
+        post_data << post['caption'] rescue post_data << ''
+        post_data << post['id'] rescue post_data << ''
+        post_data << post['is_video'] rescue post_data << ''
+        post_data << post['display_src'] rescue post_data << ''
+        date = post['date'] rescue  ''
+        post_date = Date.strptime("#{date}", '%s') rescue ''
+        post_data << post_date rescue post_data << ''
+
+        if post['is_video']
+          code = post['code'] 
+          video_page = agent.get("https://www.instagram.com/p/#{code}/")
+          video_link = video_page.at('meta[property="og:video:secure_url"]')[:content]
+          post_data << video_link rescue post_data << ''
+        else
+          post_data << ''
+        end
+        posts_data << post_data
+      end
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
+              
+        csv << ["description","id","is_video","display_src","posted_at","video_url","hashtag"]
+
+        posts_data.each do |d|
+
+          d1 = d << hashtag
+          csv << d1
+        end
+      end
+    end
+    File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
+    redirect_to waiting_path
+  end
+
   def pinterest_scraper
     session[:file] = 'pinterest_data.csv'
     params[:user_names].split(',').each do |user|
