@@ -16,6 +16,8 @@ Rails.application.routes.draw do
   post '/scrap_instagram', to: 'web_scraper#instagram_scraper'
   post '/scrap_facebook', to: 'web_scraper#facebook_scraper'
   post '/scrap_vimeo', to: 'web_scraper#vimeo_scraper'
+  post '/scrap_you_tube', to: 'web_scraper#youtube_scrap'
+  post '/scrap_vi_ne', to: 'web_scraper#vine_scrap'
   post '/scrap_pinterest', to: 'web_scraper#pinterest_scraper'
   post '/scrap_twitter', to: 'web_scraper#twitter_scraper'
    post '/scrap_vine', to: 'web_scraper#vine_scraper'

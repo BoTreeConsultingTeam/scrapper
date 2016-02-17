@@ -381,6 +381,80 @@ class WebScraperController < ApplicationController
     redirect_to waiting_path
   end
 
+  def youtube_scrap
+    session[:file] = 'youtube_data.csv'
+    params[:user_names].split(',').each do |user|
+      agent = Mechanize.new
+      page = agent.get("https://www.youtube.com/user/#{user}/videos")
+      username =  page.at('meta[property="og:url"]')[:content].split("/").last
+      youtube_data = page.search('ul#channels-browse-content-grid li.channels-content-item .yt-lockup').to_a
+
+      y_videos = []
+
+      youtube_data.each do |video|
+        y_video = []
+        y_video << video.search('h3 a').text.strip rescue y_video << ''
+        y_video << video.search('.yt-lockup-meta li[1]').text rescue y_video << ''
+        y_video << video.search('.yt-lockup-meta li[2]').text rescue y_video << ''
+        y_video << video.search('img').first['src'].gsub("//",'') rescue y_video << ''
+        video_id = video.attributes['data-context-item-id'].text rescue y_video << ''
+        y_video << video_id
+        y_video << "https://www.youtube.com/embed/#{video_id}"
+
+        y_videos << y_video
+      end
+      puts y_videos
+
+      CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
+          
+        csv << ["Description","Views","posted_at","display_url","post_id","video_url","username"]
+
+        y_videos.each do |y|
+
+          y1 = y << username
+          csv << y1
+        end
+      end
+    end
+    File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
+    redirect_to waiting_path
+  end
+
+  def vine_scrap
+    session[:file] = 'vine_data.csv'
+    params[:user_names].split(',').each do |user|
+      agent = Mechanize.new
+        page = agent.get("https://vine.co/#{user}")
+        username =  page.at('meta[property="og:url"]')[:content].split("/").last
+
+        vine_data = page.search('div .post').to_a
+        vine_posts = []
+
+        vine_data.each do |vine|
+          vine_post = []
+          vine_post << vine.search('.description').text rescue vine_post << ''
+          vine_post << vine.search('p').text.to_date rescue vine_post << ''
+          vine_post << vine.search('video').first['src'] rescue vine_post << ''
+          vine_post << vine.search('h2 a').first['href'].split("/").last rescue vine_post << ''
+
+          vine_posts << vine_post
+        end
+        puts vine_posts
+        CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
+            
+        csv << ["Description","posted_at","video_url","video_id","username"]
+
+        vine_posts.each do |v|
+
+          v1 = v << username
+          csv << v1
+        end
+      end
+    end
+    File.rename("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", "#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}")
+    redirect_to waiting_path
+  end
+
   def vine_scraper
     session[:file] = 'vine_data.zip'
     Thread.new do
