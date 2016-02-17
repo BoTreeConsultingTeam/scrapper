@@ -245,7 +245,32 @@ class WebScraperController < ApplicationController
     params[:user_names].split(',').each do |user|
       twitter_data_response = ''
       Phantomjs.run("#{File.expand_path(File.dirname(__FILE__))}/../../app/assets/javascripts/twitter_data.js", user.try(:strip)){ |line| puts twitter_data_response = line }
-      JSON.parse(twitter_data_response)
+      data = JSON.parse(twitter_data_response)
+      twitter_data = JSON.parse(data['twitter_data'])
+      video_data = JSON.parse(data['video_data'])
+
+      tweets_data = []
+      tweets_video_data = []
+      twitter_data.each do |tweet|
+        tweet_data = []
+
+        tweet_data << tweet['tweet_content'] rescue tweet_data << ''
+        tweet_data << tweet['tweet_at'] rescue tweet_data << ''
+        tweet_data << tweet['tweet_id'] rescue tweet_data << ''
+        tweet_data << tweet['tweet_media'] rescue tweet_data << ''
+        tweet_data << tweet['user_handle'] rescue tweet_data << ''
+        tweet_data << tweet['user_name'] rescue tweet_data << ''
+        tweet_data << tweet['isVideoPresent'] rescue tweet_data << ''
+        tweet_data << tweet['videoUrl'] rescue tweet_data << ''
+      end
+
+      video_data.each do |video|
+        v_data = []
+        v_data << video['tweet_id'] rescue v_data << ''
+        v_data << video['videoUrl'] rescue v_data << ''
+
+        tweets_video_data << v_data
+      end
       # m = Mechanize.new
 
       # page1 = m.get("https://mobile.twitter.com/#{user}")
