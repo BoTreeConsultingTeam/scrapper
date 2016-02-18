@@ -369,7 +369,14 @@ class WebScraperController < ApplicationController
 
     params[:user_names].split(',').each do |user|
       agent = mechanize.get("https://m.facebook.com/#{user}?v=timeline")
-      posts = agent.search('div#structured_composer_async_container').children.children.children.to_a.first.search('div[id*="u_"]').to_a
+  
+
+      if agent.search('div#structured_composer_async_container').present?
+        posts = agent.search('div#structured_composer_async_container').children.children.children.to_a.first.search('div[id*="u_"]').to_a
+      else
+        agent = agent.link_with(:text => 'Timeline').click
+        posts = agent.search('div#structured_composer_async_container').children.children.children.to_a.first.search('div[id*="u_"]').to_a
+      end
       posts_data = []
       posts.each do |post|
         post_data = []
@@ -384,7 +391,13 @@ class WebScraperController < ApplicationController
         web_url  = post.search("div/a").to_a.first['href'].include?('lm.facebook.com/l.php?u') ? post.search("div/a").to_a.first['href'] : "" rescue  ""
         post_data << web_url rescue post_data << ""
         post_id_data = post.search('a').map{|x| x[:href]}[-2]
-        post_id = URI.decode_www_form(post_id_data).first.last
+
+        if post_id_data.include?('albums')
+          post_id = URI(post_id_data).query.split(".")[1].gsub(/\D/,'')
+        else
+          post_id = URI.decode_www_form(post_id_data).first.last
+        end
+        # post_id = post_id_data.split("?")[1].split('&')[1].gsub('id=','')
         post_data << post_id
         posts_data << post_data
       end
