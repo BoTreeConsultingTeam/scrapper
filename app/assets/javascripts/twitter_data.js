@@ -30,7 +30,8 @@ page.open(url, function (status) {
         }
         console.log('----------------> IN SET INTERVAL');
         var tweet_content = tweets[i].querySelector(".tweet-text").textContent;
-        var tweet_at = tweets[i].querySelector("._timestamp").textContent;
+        var tweet_at = parseInt(tweets[i].querySelector("._timestamp").attributes['data-time-ms'].value);
+        var tweet_time = new Date(tweet_at)
         var user_name = tweets[i].querySelector("strong.fullname").textContent;
         var user_handle = tweets[i].querySelector(".js-action-profile-name.username").textContent;
         var tweet_id = tweets[i].attributes["data-tweet-id"].textContent;
@@ -50,7 +51,7 @@ page.open(url, function (status) {
         }
         tweetsJsonArr.push({
           tweet_content: tweet_content,
-          tweet_at: tweet_at,
+          tweet_at: tweet_time,
           user_name: user_name,
           user_handle: user_handle,
           tweet_id: tweet_id,

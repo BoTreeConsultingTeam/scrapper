@@ -140,7 +140,7 @@ class WebScraperController < ApplicationController
         a1 = text.gsub('window._sharedData = ','').gsub(';','')
         b1 = JSON(a1) 
         date = b1['entry_data']['PostPage'][0]['media']['date']
-        post_date = Date.strptime("#{date}", '%s')
+        post_date = DateTime.strptime("#{date}", '%s')
         posted_at << post_date
       end
 
@@ -267,7 +267,7 @@ class WebScraperController < ApplicationController
         pin_data = []
           pin_data << pin['description'] rescue pin_data << ""
           pin_data << pin['images']['orig']['url'] rescue pin_data << ""
-          pin_data << pin['created_at'].to_date rescue pin_data << ""
+          pin_data << pin['created_at'] rescue pin_data << ""
           pin_data << pin['link'] rescue pin_data << ""
           pin_data << pin['rich_summary']['display_name'] rescue pin_data << ""
           pin_data << pin['rich_summary']['site_name'] rescue pin_data << ""
@@ -380,8 +380,10 @@ class WebScraperController < ApplicationController
       posts_data = []
       posts.each do |post|
         post_data = []
+        next if post.search("div/abbr").text.blank?
         post_data << post.search('span p').text rescue post_data << ""
-        post_data << post.search("div/abbr").text rescue post_data << ""
+        post_time = post.search("div/abbr").text
+        post_data << DateTime.parse("#{post_time}").to_datetime rescue post_data << ""
         # post_url = post.search("div/a").to_a.first['href'].include?('photo') ? post.search("div/a").to_a.first['href'] : ""
         # post_page = mechanize.get "https://m.facebook.com#{post_url}" rescue ""
         # post_data << post_page.search('img').to_a[1].attributes['src'].value rescue post_data << ""
@@ -390,7 +392,7 @@ class WebScraperController < ApplicationController
         post_data  << video_link rescue post_data << ""
         web_url  = post.search("div/a").to_a.first['href'].include?('lm.facebook.com/l.php?u') ? post.search("div/a").to_a.first['href'] : "" rescue  ""
         post_data << web_url rescue post_data << ""
-        post_id_data = post.search('a').map{|x| x[:href]}[-2]
+        post_id_data = post.search('a').map{|x| x[:href]}.find{ |i| i[/fbid/] }
 
         if post_id_data.include?('albums')
           post_id = URI(post_id_data).query.split(".")[1].gsub(/\D/,'')
@@ -496,7 +498,7 @@ class WebScraperController < ApplicationController
         vine_data.each do |vine|
           vine_post = []
           vine_post << vine.search('.description').text rescue vine_post << ''
-          vine_post << vine.search('p').text.to_date rescue vine_post << ''
+          vine_post << vine.search('p').text.to_datetime rescue vine_post << ''
           vine_post << vine.search('video').first['src'] rescue vine_post << ''
           vine_post << vine.search('h2 a').first['href'].split("/").last rescue vine_post << ''
 
