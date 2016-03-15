@@ -11,6 +11,8 @@ class WebScraperController < ApplicationController
   after_action :delete_zip_file, only: [:scraped_data, :scrapped_file]
   before_action :authentication, only: :new
 
+  YOUTUBE_URL = "https://www.youtube.com/"
+
   def new
     # reset_session
     # Dir.mkdir "#{File.expand_path(File.dirname(__FILE__))}/../../scrapped_data" rescue nil
@@ -450,7 +452,7 @@ class WebScraperController < ApplicationController
     session[:file] = 'youtube_data.csv'
     params[:channel_ids].split(',').each do |channel_id|
       agent = Mechanize.new
-      page = agent.get "https://www.youtube.com/channel/#{channel_id}/videos"
+      page = agent.get "#{YOUTUBE_URL}channel/#{channel_id}/videos"
 
       youtube_data = page.search('ul#channels-browse-content-grid li.channels-content-item .yt-lockup').to_a
       user = page.search('.branded-page-header-title-link').text
@@ -462,10 +464,10 @@ class WebScraperController < ApplicationController
         y_video << video.search('img').first['src'].gsub("//",'') rescue y_video << ''
         video_id = video.attributes['data-context-item-id'].text rescue y_video << ''
         y_video << video_id
-          video_page = agent.get "https://www.youtube.com/watch?v=#{video_id}"
-          y_video << video_page.search('#watch-uploader-info strong').text.to_date rescue y_video << ''
-          y_video << video.search('.yt-lockup-meta li[1]').text rescue y_video << ''
-        y_video << "https://www.youtube.com/embed/#{video_id}"
+        video_page = agent.get "https://www.youtube.com/watch?v=#{video_id}"
+        y_video << video_page.search('#watch-uploader-info strong').text.to_date rescue y_video << ''
+        y_video << video.search('.yt-lockup-meta li[1]').text rescue y_video << ''
+        y_video << "#{YOUTUBE_URL}embed/#{video_id}"
 
         y_videos << y_video
       end
