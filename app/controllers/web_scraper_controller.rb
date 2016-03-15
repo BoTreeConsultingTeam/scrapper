@@ -448,22 +448,23 @@ class WebScraperController < ApplicationController
 
   def youtube_scrap
     session[:file] = 'youtube_data.csv'
-    params[:user_names].split(',').each do |user|
+    params[:channel_ids].split(',').each do |channel_id|
       agent = Mechanize.new
-      page = agent.get("https://www.youtube.com/user/#{user}/videos")
-      username =  page.at('meta[property="og:url"]')[:content].split("/").last
-      youtube_data = page.search('ul#channels-browse-content-grid li.channels-content-item .yt-lockup').to_a
+      page = agent.get "https://www.youtube.com/channel/#{channel_id}/videos"
 
+      youtube_data = page.search('ul#channels-browse-content-grid li.channels-content-item .yt-lockup').to_a
+      user = page.search('.branded-page-header-title-link').text
       y_videos = []
 
       youtube_data.each do |video|
         y_video = []
         y_video << video.search('h3 a').text.strip rescue y_video << ''
-        y_video << video.search('.yt-lockup-meta li[1]').text rescue y_video << ''
-        y_video << video.search('.yt-lockup-meta li[2]').text rescue y_video << ''
         y_video << video.search('img').first['src'].gsub("//",'') rescue y_video << ''
         video_id = video.attributes['data-context-item-id'].text rescue y_video << ''
         y_video << video_id
+          video_page = agent.get "https://www.youtube.com/watch?v=#{video_id}"
+          y_video << video_page.search('#watch-uploader-info strong').text.to_date rescue y_video << ''
+          y_video << video.search('.yt-lockup-meta li[1]').text rescue y_video << ''
         y_video << "https://www.youtube.com/embed/#{video_id}"
 
         y_videos << y_video
@@ -472,11 +473,11 @@ class WebScraperController < ApplicationController
 
       CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
           
-        csv << ["Description","Views","posted_at","display_url","post_id","video_url","username"]
+        csv << ["Description","display_url","video_id","posted_at","Views","video_url","user"]
 
         y_videos.each do |y|
 
-          y1 = y << username
+          y1 = y << user
           csv << y1
         end
       end
