@@ -503,14 +503,22 @@ class WebScraperController < ApplicationController
           vine_post << vine.search('.description').text rescue vine_post << ''
           vine_post << vine.search('p').text.to_datetime rescue vine_post << ''
           vine_post << vine.search('video').first['src'] rescue vine_post << ''
-          vine_post << vine.search('h2 a').first['href'].split("/").last rescue vine_post << ''
+          vine_id = vine.search('h2 a').first['href'].split("/").last
+          vine_post << vine_id rescue vine_post << ''
+          vine_link = vine.search('h2 a').first['href']
+          vine_post << vine_link rescue vine_post << ''
+          vine_page = agent.get "#{vine_link}"
+          vine_data = vine_page.search('script').to_a[5]
+          vine_data_text = vine_data.text.gsub('window.POST_DATA = ','').gsub("{ #{vine_id}: ",'').gsub(";","").gsub(/\}$/,"")
+          v = JSON(vine_data_text)
+          vine_post << v['thumbnailUrl']
 
           vine_posts << vine_post
         end
         puts vine_posts
         CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
             
-        csv << ["Description","posted_at","video_url","video_id","username"]
+        csv << ["Description","posted_at","video_url","video_id","vine_link","display_url","username"]
 
         vine_posts.each do |v|
 
