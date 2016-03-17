@@ -394,20 +394,29 @@ class WebScraperController < ApplicationController
         post_data  << video_link rescue post_data << ""
         web_url  = post.search("div/a").to_a.first['href'].include?('lm.facebook.com/l.php?u') ? post.search("div/a").to_a.first['href'] : "" rescue  ""
         post_data << web_url rescue post_data << ""
-        post_id_data = post.search('a').map{|x| x[:href]}.find{ |i| i[/fbid/] }
-
-        if post_id_data.include?('albums')
-          post_id = URI(post_id_data).query.split(".")[1].gsub(/\D/,'')
-        else
-          post_id = URI.decode_www_form(post_id_data).first.last
+        if post.search('a').map{|x| x[:href]}.find{ |i| i[/fbid/] }.present?
+          if post.search('a').map{|x| x[:href]}.find{ |i| i[/albums/] }.present?
+            post_id_data = post.search('a').map{|x| x[:href]}.find{ |i| i[/albums/] }
+            post_id = post_id_data.split("/")[3]
+          elsif post.search('a').map{|x| x[:href]}.find{ |i| i[/top_level_post_id/] }.present?
+            post_id_data = post.search('a').map{|x| x[:href]}.find{ |i| i[/top_level_post_id./] }
+            post_id = post_id_data.split("top_level_post_id.")[1].gsub(/\%.*/,'')
+          elsif post.search('a').map{|x| x[:href]}.find{ |i| i[/tl_objid/] }.present?
+            post_id_data = post.search('a').map{|x| x[:href]}.find{ |i| i[/tl_objid/] }
+            post_id = post_id_data.split(".")[2].gsub(/\%.*/,'')
+          else
+            post_id_data = post.search('a').map{|x| x[:href]}.find{ |i| i[/fbid/] }
+            post_id = URI.decode_www_form(post_id_data).first.last
+          end
         end
-        # post_id = post_id_data.split("?")[1].split('&')[1].gsub('id=','')
+        post_link = "www.facebook.com/#{user}/posts/#{post_id}"
+        post_data << post_link
         post_data << post_id
         posts_data << post_data
       end
 
       CSV.open("#{File.expand_path(File.dirname(__FILE__))}/../../#{session[:file]}.csv", 'a+',{:col_sep => "|"}) do |csv|
-        csv << ["post_content","post_at","post_media_url","post_video_url","post_web_url","post_id"]
+        csv << ["post_content","post_at","post_media_url","post_video_url","post_web_url","post_id","post_link"]
 
         posts_data.each do|p|
           csv << p
